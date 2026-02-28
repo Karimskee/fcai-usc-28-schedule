@@ -66,11 +66,10 @@ const scheduleData = {
             "name": "Web Design and Development",
             "departments": ["AI", "CS", "IS"],
             "sessions": [
-                { "type": "Section", "day": "Saturday", "start": "13:00", "end": "15:00", "location": "قاعة(1)", "groups": ["CS Group 1", "IS Group 2"], "instructor": "م/ عبدالله حلمي", "departments": ["CS", "IS"] },
-                { "type": "Section", "day": "Monday", "start": "11:00", "end": "13:00", "location": "البلازا الخارجية", "groups": ["IS Group 1"], "instructor": "م.م. هبه فتحي", "departments": ["IS"] },
-                { "type": "Section", "day": "Monday", "start": "11:00", "end": "13:00", "location": "البلازا الداخلية", "groups": ["CS Group 1"], "instructor": "م/ ابراهيم عبدالله, م/ عبدالله حلمي", "departments": ["CS"] },
+                // { "type": "Section", "day": "Saturday", "start": "13:15", "end": "14:15", "location": "البلازا الخارجية", "groups": ["CS Group 1", "IS Group 2"], "instructor": "م/ عبدالله حلمي", "departments": ["CS", "IS"] },
+                { "type": "Section", "day": "Monday", "start": "11:00", "end": "12:00", "location": "البلازا الخارجية", "groups": ["IS Group 1"], "instructor": "م.م/ هبه فتحي", "departments": ["IS"] },
                 { "type": "Lecture", "day": "Thursday", "start": "11:30", "end": "12:30", "location": "البلازا الخارجية", "groups": ["CS Group 1", "CS Group 2", "IS Group 1", "IS Group 2"], "instructor": "ا.م.د/ سارة شهاب", "departments": ["CS", "IS"] },
-                { "type": "Section", "day": "Wednesday", "start": "09:00", "end": "11:00", "location": "البلازا الداخلية", "groups": ["CS Group 2"], "instructor": "م.م/ هبه فتحي", "departments": ["CS"] },
+                { "type": "Section", "day": "Wednesday", "start": "09:00", "end": "10:00", "location": "البلازا الداخلية", "groups": ["CS Group 2"], "instructor": "م.م/ هبه فتحي", "departments": ["CS"] },
                 // { "type": "Lecture", "day": "Sunday", "start": "15:00", "end": "17:00", "location": "قاعة(1)", "groups": ["AI Group 1"], "instructor": "ا.م.د/ سارة شهاب", "departments": ["AI"] },
                 // { "type": "Section", "day": "Wednesday", "start": "09:00", "end": "11:00", "location": "قاعة(2)", "groups": ["AI Group 1"], "instructor": "م/ ابراهيم عبدالله", "departments": ["AI"] },
             ]
