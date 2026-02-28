@@ -79,14 +79,13 @@ const scheduleData = {
             "name": "Operating Systems-1",
             "departments": ["AI", "CS", "IS"],
             "sessions": [
-                { "type": "Section", "day": "Tuesday", "start": "09:00", "end": "11:00", "location": "قاعة(2)", "groups": ["AI Group 1"], "instructor": "م/ ديفيد كمال", "departments": ["AI"] },
-                { "type": "Lecture", "day": "Wednesday", "start": "15:00", "end": "17:00", "location": "قاعة(1)", "groups": ["AI Group 1"], "instructor": "ا.د/ ابراهيم سليم", "departments": ["AI"] },
-                { "type": "Lecture", "day": "Tuesday", "start": "11:00", "end": "13:00", "location": "البلازا الخارجية", "groups": ["CS Group 1", "CS Group 2"], "instructor": "ا.د/ ابراهيم سليم", "departments": ["CS"] },
-                { "type": "Lecture", "day": "Tuesday", "start": "13:00", "end": "15:00", "location": "البلازا الخارجية", "groups": ["IS Group 1", "IS Group 2"], "instructor": "ا.د/ ابراهيم سليم", "departments": ["IS"] },
-                { "type": "Section", "day": "Tuesday", "start": "13:00", "end": "15:00", "location": "القاعة الجديدة", "groups": ["CS Group 1"], "instructor": "م. ديفيد كمال", "departments": ["CS"] },
-                { "type": "Section", "day": "Wednesday", "start": "09:00", "end": "11:00", "location": "القاعة الجديدة", "groups": ["CS Group 1"], "instructor": "م.م/ سلمى رأفت", "departments": ["CS"] },
-                { "type": "Section", "day": "Tuesday", "start": "11:00", "end": "13:00", "location": "القاعة الجديدة", "groups": ["IS Group 1"], "instructor": "م. ديفيد كمال", "departments": ["IS"] },
-                { "type": "Section", "day": "Tuesday", "start": "11:00", "end": "13:00", "location": "البلازا الخارجية", "groups": ["IS Group 2"], "instructor": "م. نادر جمال", "departments": ["IS"] },
+                { "type": "Section", "day": "Tuesday", "start": "10:00", "end": "11:00", "location": "القاعة الجديدة", "groups": ["IS Group 1"], "instructor": "م/ ديفيد كمال", "departments": ["IS"] },
+                { "type": "Section", "day": "Tuesday", "start": "10:00", "end": "11:00", "location": "البلازا الخارجية", "groups": ["IS Group 2"], "instructor": "م/ نادر جمال", "departments": ["IS"] },
+                { "type": "Lecture", "day": "Tuesday", "start": "11:00", "end": "12:00", "location": "البلازا الخارجية", "groups": ["CS Group 1", "CS Group 2", "IS Group 1", "IS Group 2"], "instructor": "ا.د/ ابراهيم سليم", "departments": ["CS", "IS"] },
+                { "type": "Section", "day": "Tuesday", "start": "12:00", "end": "13:00", "location": "القاعة الجديدة", "groups": ["CS Group 1"], "instructor": "م/ ديفيد كمال", "departments": ["CS"] },
+                { "type": "Section", "day": "Wednesday", "start": "09:00", "end": "10:00", "location": "القاعة الجديدة", "groups": ["CS Group 2"], "instructor": "م.م/ سلمى رأفت", "departments": ["CS"] },
+                // { "type": "Section", "day": "Tuesday", "start": "09:00", "end": "11:00", "location": "قاعة(2)", "groups": ["AI Group 1"], "instructor": "م/ ديفيد كمال", "departments": ["AI"] },
+                // { "type": "Lecture", "day": "Wednesday", "start": "15:00", "end": "17:00", "location": "قاعة(1)", "groups": ["AI Group 1"], "instructor": "ا.د/ ابراهيم سليم", "departments": ["AI"] },
             ]
         },
         {
@@ -94,12 +93,10 @@ const scheduleData = {
             "name": "Introduction to Operation Research & Decision Support",
             "departments": ["CS", "IS"],
             "sessions": [
-                { "type": "Lecture", "day": "Saturday", "start": "13:00", "end": "15:00", "location": "البلازا الخارجية", "groups": ["CS Group 1", "CS Group 2"], "instructor": "د/ كرم السيد", "departments": ["CS"] },
-                { "type": "Lecture", "day": "Saturday", "start": "11:00", "end": "13:00", "location": "البلازا الخارجية", "groups": ["IS Group 1", "IS Group 2"], "instructor": "د/ كرم السيد", "departments": ["IS"] },
-                { "type": "Section", "day": "Wednesday", "start": "13:00", "end": "15:00", "location": "البلازا الداخلية", "groups": ["CS Group 1"], "instructor": "م. ابتهال يسري", "departments": ["CS"] },
-                { "type": "Section", "day": "Wednesday", "start": "15:00", "end": "17:00", "location": "القاعة الجديدة", "groups": ["CS Group 2"], "instructor": "م. ياسمين سمير", "departments": ["CS"] },
-                { "type": "Section", "day": "Wednesday", "start": "13:00", "end": "15:00", "location": "البلازا الخارجية", "groups": ["IS Group 1"], "instructor": "م. ابتهال يسري", "departments": ["IS"] },
-                { "type": "Section", "day": "Thursday", "start": "09:00", "end": "11:00", "location": "القاعة الجديدة", "groups": ["IS Group 2"], "instructor": "م. ياسمين سمير", "departments": ["IS"] },
+                { "type": "Lecture", "day": "Saturday", "start": "12:15", "end": "13:15", "location": "البلازا الخارجية", "groups": ["CS Group 1", "CS Group 2", "IS Group 1", "IS Group 2"], "instructor": "د/ كرم السيد", "departments": ["CS", "IS"] },
+                { "type": "Section", "day": "Wednesday", "start": "12:30", "end": "13:30", "location": "القاعة الجديدة", "groups": ["CS Group 1", "CS Group 2"], "instructor": "م/ ياسمين سمير", "departments": ["CS"] },
+                { "type": "Section", "day": "Wednesday", "start": "11:00", "end": "12:00", "location": "البلازا الخارجية", "groups": ["IS Group 1"], "instructor": "م/ ابتهال يسري", "departments": ["IS"] },
+                { "type": "Section", "day": "Thursday", "start": "09:00", "end": "10:00", "location": "القاعة الجديدة", "groups": ["IS Group 2"], "instructor": "م/ ياسمين سمير", "departments": ["IS"] },
             ]
         }
     ]
