@@ -6,11 +6,11 @@
     --accent-hover: #3182ce;
     --card-bg: rgba(22, 27, 34, 0.6);
     --card-border: rgba(48, 54, 61, 0.5);
-    
+
     --orb-1: #58a6ff;
     --orb-2: #8a2be2;
     --orb-3: #ff7b72;
-    
+
     --session-lecture: rgba(88, 166, 255, 0.15);
     --session-lecture-border: rgba(88, 166, 255, 0.4);
     --session-section: rgba(138, 43, 226, 0.15);
@@ -81,8 +81,13 @@ body {
 }
 
 @keyframes float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(5%, 5%) scale(1.05); }
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(5%, 5%) scale(1.05);
+    }
 }
 
 /* Typography & Layout */
@@ -182,7 +187,8 @@ body {
     transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.custom-select:focus, .custom-select:hover {
+.custom-select:focus,
+.custom-select:hover {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
 }
@@ -195,9 +201,13 @@ body {
     margin-top: 0.5rem;
 }
 
+.select-all-label {
+    grid-column: 1 / -1;
+}
+
 .course-checkbox-label {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
     padding: 1.2rem;
     background: rgba(13, 17, 23, 0.6);
@@ -214,6 +224,8 @@ body {
 }
 
 .course-checkbox-label input[type="checkbox"] {
+    flex-shrink: 0;
+    margin-top: 0.2rem;
     appearance: none;
     width: 22px;
     height: 22px;
@@ -233,7 +245,7 @@ body {
 .course-checkbox-label input[type="checkbox"]:checked::after {
     content: '';
     position: absolute;
-    top: 2px;
+    top: 1px;
     left: 6px;
     width: 6px;
     height: 10px;
@@ -245,6 +257,7 @@ body {
 .course-checkbox-label span {
     font-size: 1.05rem;
     font-weight: 500;
+    transform: translateY(-5px);
 }
 
 /* Buttons */
@@ -293,8 +306,15 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .schedule-header {
@@ -399,7 +419,7 @@ body {
 
 .session-card:hover {
     transform: translateX(5px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .session-card.lecture {
@@ -440,7 +460,7 @@ body {
 .session-time {
     font-weight: 600;
     color: var(--text-primary);
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 0.3rem 0.8rem;
     border-radius: 6px;
     font-size: 0.9rem;
@@ -475,7 +495,7 @@ body {
 
 .session-course-id {
     font-family: monospace;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     padding: 0.2rem 0.6rem;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -486,17 +506,17 @@ body {
     .app-header h1 {
         font-size: 2.2rem;
     }
-    
+
     .glass-card {
         padding: 1.5rem;
     }
-    
+
     .session-content {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
-    
+
     .primary-btn {
         width: 100%;
         text-align: center;

@@ -81,6 +81,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (availableCourses.length === 0) {
             coursesContainer.innerHTML = '<p class="subtitle">No courses available for this department.</p>';
         } else {
+            // Add Select All Checkbox
+            const selectAllLabel = document.createElement('label');
+            selectAllLabel.className = 'course-checkbox-label select-all-label';
+
+            const selectAllCheckbox = document.createElement('input');
+            selectAllCheckbox.type = 'checkbox';
+            selectAllCheckbox.id = 'select-all-courses';
+            selectAllCheckbox.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                const courseCheckboxes = coursesContainer.querySelectorAll('input[type="checkbox"]:not(#select-all-courses)');
+
+                courseCheckboxes.forEach(cb => {
+                    cb.checked = isChecked;
+                    // Trigger the individual selection logic manually
+                    if (isChecked && !selectedCourses.includes(cb.value)) {
+                        selectedCourses.push(cb.value);
+                    } else if (!isChecked) {
+                        selectedCourses = selectedCourses.filter(id => id !== cb.value);
+                    }
+                });
+                updateGenerateButton();
+            });
+
+            const selectAllSpan = document.createElement('span');
+            selectAllSpan.textContent = 'Select All Courses';
+            selectAllSpan.style.fontWeight = '700';
+            selectAllSpan.style.color = 'var(--accent-color)';
+
+            selectAllLabel.appendChild(selectAllCheckbox);
+            selectAllLabel.appendChild(selectAllSpan);
+            coursesContainer.appendChild(selectAllLabel);
+
+            // Add Individual Course Checkboxes
             availableCourses.forEach(course => {
                 const label = document.createElement('label');
                 label.className = 'course-checkbox-label';
@@ -88,7 +121,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.value = course.id;
-                checkbox.addEventListener('change', handleCourseSelection);
+                checkbox.addEventListener('change', (e) => {
+                    handleCourseSelection(e);
+
+                    // Update Select All checkbox state
+                    const allCourseCheckboxes = Array.from(coursesContainer.querySelectorAll('input[type="checkbox"]:not(#select-all-courses)'));
+                    const allChecked = allCourseCheckboxes.every(cb => cb.checked);
+                    const someChecked = allCourseCheckboxes.some(cb => cb.checked);
+
+                    const selectAllCb = document.getElementById('select-all-courses');
+                    if (selectAllCb) {
+                        selectAllCb.checked = allChecked;
+                        selectAllCb.indeterminate = someChecked && !allChecked;
+                    }
+                });
 
                 const span = document.createElement('span');
                 span.textContent = course.name;
@@ -220,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span><i class="fa-solid fa-location-dot"></i> ${session.location}</span>
                                 <span><i class="fa-solid fa-users"></i> ${session.groups.join(', ')}</span>
                                 <span><i class="fa-solid fa-chalkboard-user"></i> ${session.instructor || 'TBA'}</span>
+                                ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${session.notes}</span>` : ''}
                             </div>
                         </div>
                     </div>
