@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (groups.length > 0) {
             groups.forEach(group => {
                 const option = document.createElement('option');
-                option.value = group;
-                option.textContent = group;
+                option.value = group.name;
+                option.textContent = group.name;
                 groupSelect.appendChild(option);
             });
             stepGroup.classList.remove('hidden');
@@ -73,10 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateCourses() {
         coursesContainer.innerHTML = '';
 
-        // Find courses that belong to the selected department
-        const availableCourses = scheduleData.courses.filter(course =>
-            course.departments.includes(selectedDept)
-        );
+        // Find courses that belong to the selected group
+        const groupsForDept = scheduleData.groups[selectedDept] || [];
+        const groupObj = groupsForDept.find(g => g.name === selectedGroup);
+        const groupSessions = groupObj ? groupObj.sessions : [];
+
+        // Build unique available courses from sessions
+        const courseMap = new Map();
+        groupSessions.forEach(session => {
+            if (!courseMap.has(session.courseId)) {
+                courseMap.set(session.courseId, { id: session.courseId, name: session.courseName });
+            }
+        });
+        const availableCourses = Array.from(courseMap.values());
 
         if (availableCourses.length === 0) {
             coursesContainer.innerHTML = '<p class="subtitle">No courses available for this department.</p>';
@@ -172,24 +181,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeline = {};
 
         // Filter sessions based on selected courses and group
-        scheduleData.courses.forEach(course => {
-            if (selectedCourses.includes(course.id)) {
+        const groupsForDept = scheduleData.groups[selectedDept] || [];
+        const groupObj = groupsForDept.find(g => g.name === selectedGroup);
+        const groupSessions = groupObj ? groupObj.sessions : [];
 
-                const relevantSessions = course.sessions.filter(session => {
-                    // Check if the session is for all groups, or if it matches the student's group
-                    // AND ensure the session is for the selected department
-                    return session.groups.includes(selectedGroup) && (!session.departments || session.departments.includes(selectedDept));
-                });
-
-                relevantSessions.forEach(session => {
-                    if (!timeline[session.day]) {
-                        timeline[session.day] = [];
-                    }
-                    timeline[session.day].push({
-                        courseId: course.id,
-                        courseName: course.name,
-                        ...session
-                    });
+        groupSessions.forEach(session => {
+            if (selectedCourses.includes(session.courseId)) {
+                if (!timeline[session.day]) {
+                    timeline[session.day] = [];
+                }
+                timeline[session.day].push({
+                    courseId: session.courseId,
+                    courseName: session.courseName,
+                    ...session
                 });
             }
         });
