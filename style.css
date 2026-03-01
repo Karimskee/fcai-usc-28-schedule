@@ -564,6 +564,23 @@ body {
         padding: 1.5rem;
     }
 
+    /* Stack ID Lookup group */
+    .lookup-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lookup-input-group button.primary-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    /* Wrap session details so they don't overflow */
+    .session-details {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+
     .session-content {
         flex-direction: column;
         align-items: flex-start;
@@ -573,5 +590,20 @@ body {
     .primary-btn {
         width: 100%;
         text-align: center;
+    }
+
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Ensure Checkbox text matches hit area well */
+    .course-checkbox-label {
+        padding: 1rem;
+    }
+
+    .session-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
     }
 }
