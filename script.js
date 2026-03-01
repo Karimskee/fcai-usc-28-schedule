@@ -10,10 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scheduleView = document.getElementById('schedule-view');
     const timetableContainer = document.getElementById('timetable-container');
 
-    const idLookupContainer = document.getElementById('id-lookup-container');
+    const idSearchContainer = document.getElementById('id-search-container');
     const studentIdInput = document.getElementById('student-id-input');
-    const lookupBtn = document.getElementById('lookup-btn');
-    const lookupResult = document.getElementById('lookup-result');
+    const searchBtn = document.getElementById('search-btn');
+    const searchResult = document.getElementById('search-result');
 
     // State Variables
     let selectedDept = null;
@@ -31,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         groupSelect.addEventListener('change', handleGroupChange);
         generateBtn.addEventListener('click', generateSchedule);
         
-        lookupBtn.addEventListener('click', handleIdLookup);
+        searchBtn.addEventListener('click', handleIdSearch);
         studentIdInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleIdLookup();
+            if (e.key === 'Enter') handleIdSearch();
         });
     }
 
@@ -56,9 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
         stepCourses.classList.add('hidden');
         generateBtn.classList.add('hidden');
         scheduleView.classList.add('hidden');
-        idLookupContainer.classList.add('hidden');
+        idSearchContainer.classList.add('hidden');
         studentIdInput.value = '';
-        lookupResult.textContent = '';
+        searchResult.textContent = '';
 
         // Populate groups for the selected department
         const groups = scheduleData.groups[selectedDept] || [];
@@ -88,22 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleGroupChange(e) {
         const val = e.target.value;
         if (val === 'dont_know') {
-            idLookupContainer.classList.remove('hidden');
+            idSearchContainer.classList.remove('hidden');
             stepCourses.classList.add('hidden');
             generateBtn.classList.add('hidden');
             selectedGroup = null;
         } else {
-            idLookupContainer.classList.add('hidden');
+            idSearchContainer.classList.add('hidden');
             selectedGroup = val;
             populateCourses();
         }
     }
 
-    function handleIdLookup() {
+    function handleIdSearch() {
         const studentId = studentIdInput.value.trim();
         if (!studentId) {
-            lookupResult.style.color = '#ef4444'; // Red
-            lookupResult.textContent = 'Please enter a Student ID.';
+            searchResult.style.color = '#ef4444'; // Red
+            searchResult.textContent = 'Please enter a Student ID.';
             return;
         }
 
@@ -119,21 +119,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupSelect.value = mappedGroup;
                 selectedGroup = mappedGroup;
                 
-                lookupResult.style.color = '#10b981'; // Green
-                lookupResult.textContent = `Found! You are in ${mappedGroup}.`;
+                searchResult.style.color = '#10b981'; // Green
+                searchResult.textContent = `Found! You are in ${mappedGroup}.`;
                 
-                // Hide lookup container and show courses
+                // Hide search container and show courses
                 setTimeout(() => {
-                    idLookupContainer.classList.add('hidden');
+                    idSearchContainer.classList.add('hidden');
                     populateCourses();
                 }, 1500);
             } else {
-                lookupResult.style.color = '#ef4444'; // Red
-                lookupResult.textContent = `This ID belongs to ${mappedGroup}, which is not in your department.`;
+                searchResult.style.color = '#ef4444'; // Red
+                searchResult.textContent = `This ID belongs to ${mappedGroup}, which is not in your department.`;
             }
         } else {
-            lookupResult.style.color = '#ef4444'; // Red
-            lookupResult.textContent = 'Student ID not found in the database. Please select your group manually.';
+            searchResult.style.color = '#ef4444'; // Red
+            searchResult.textContent = 'Student ID not found in the database. Please select your group manually.';
         }
     }
 
@@ -269,8 +269,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show timetable
         scheduleView.classList.remove('hidden');
-        // Scroll to timetable
-        scheduleView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Use window.scrollTo instead of scrollIntoView to prevent the iOS/WebKit 
+        // bug where the screen shakes and becomes unresponsive due to layout thrashing.
+        setTimeout(() => {
+            const rect = scheduleView.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            window.scrollTo({
+                top: rect.top + scrollTop - 30, // 30px padding from the top
+                behavior: 'smooth'
+            });
+        }, 100);
     }
 
     function renderTimetable(timeline) {
