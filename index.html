@@ -40,6 +40,15 @@
                     <option value="" disabled selected>Choose Group</option>
                     <!-- Populated by JS -->
                 </select>
+                
+                <div id="id-lookup-container" class="lookup-container hidden">
+                    <label for="student-id-input" class="lookup-label">Enter Student ID to find your group</label>
+                    <div class="lookup-input-group">
+                        <input type="text" id="student-id-input" class="custom-input" placeholder="e.g. 2432002">
+                        <button id="lookup-btn" class="primary-btn">Find Group</button>
+                    </div>
+                    <div id="lookup-result" class="lookup-result"></div>
+                </div>
             </div>
 
             <div class="step-container hidden" id="step-courses">

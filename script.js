@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const scheduleView = document.getElementById('schedule-view');
     const timetableContainer = document.getElementById('timetable-container');
 
+    const idLookupContainer = document.getElementById('id-lookup-container');
+    const studentIdInput = document.getElementById('student-id-input');
+    const lookupBtn = document.getElementById('lookup-btn');
+    const lookupResult = document.getElementById('lookup-result');
+
     // State Variables
     let selectedDept = null;
     let selectedGroup = null;
@@ -25,6 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
         deptSelect.addEventListener('change', handleDeptChange);
         groupSelect.addEventListener('change', handleGroupChange);
         generateBtn.addEventListener('click', generateSchedule);
+        
+        lookupBtn.addEventListener('click', handleIdLookup);
+        studentIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleIdLookup();
+        });
     }
 
     function populateDepartments() {
@@ -46,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
         stepCourses.classList.add('hidden');
         generateBtn.classList.add('hidden');
         scheduleView.classList.add('hidden');
+        idLookupContainer.classList.add('hidden');
+        studentIdInput.value = '';
+        lookupResult.textContent = '';
 
         // Populate groups for the selected department
         const groups = scheduleData.groups[selectedDept] || [];
@@ -57,6 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.textContent = group.name;
                 groupSelect.appendChild(option);
             });
+            
+            // Add the "Don't know" option
+            const dunnoOption = document.createElement('option');
+            dunnoOption.value = 'dont_know';
+            dunnoOption.textContent = "Don't know";
+            groupSelect.appendChild(dunnoOption);
+            
             stepGroup.classList.remove('hidden');
         } else {
             // If department has no groups, skip group selection
@@ -66,8 +86,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleGroupChange(e) {
-        selectedGroup = e.target.value;
-        populateCourses();
+        const val = e.target.value;
+        if (val === 'dont_know') {
+            idLookupContainer.classList.remove('hidden');
+            stepCourses.classList.add('hidden');
+            generateBtn.classList.add('hidden');
+            selectedGroup = null;
+        } else {
+            idLookupContainer.classList.add('hidden');
+            selectedGroup = val;
+            populateCourses();
+        }
+    }
+
+    function handleIdLookup() {
+        const studentId = studentIdInput.value.trim();
+        if (!studentId) {
+            lookupResult.style.color = '#ef4444'; // Red
+            lookupResult.textContent = 'Please enter a Student ID.';
+            return;
+        }
+
+        const mappedGroup = scheduleData.studentGroups && scheduleData.studentGroups[studentId];
+        
+        if (mappedGroup) {
+            // Verify this group actually belongs to the user's selected department before switching to it
+            const deptGroups = scheduleData.groups[selectedDept] || [];
+            const isGroupInDept = deptGroups.some(g => g.name === mappedGroup);
+            
+            if (isGroupInDept) {
+                // Select the group automatically
+                groupSelect.value = mappedGroup;
+                selectedGroup = mappedGroup;
+                
+                lookupResult.style.color = '#10b981'; // Green
+                lookupResult.textContent = `Found! You are in ${mappedGroup}.`;
+                
+                // Hide lookup container and show courses
+                setTimeout(() => {
+                    idLookupContainer.classList.add('hidden');
+                    populateCourses();
+                }, 1500);
+            } else {
+                lookupResult.style.color = '#ef4444'; // Red
+                lookupResult.textContent = `This ID belongs to ${mappedGroup}, which is not in your department.`;
+            }
+        } else {
+            lookupResult.style.color = '#ef4444'; // Red
+            lookupResult.textContent = 'Student ID not found in the database. Please select your group manually.';
+        }
     }
 
     function populateCourses() {

@@ -154,6 +154,10 @@ body {
     transform: translateY(-10px);
 }
 
+.hidden {
+    display: none !important;
+}
+
 .step-container label {
     font-size: 1.2rem;
     font-weight: 600;
@@ -187,10 +191,59 @@ body {
     transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+.custom-input {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
 .custom-select:focus,
-.custom-select:hover {
+.custom-select:hover,
+.custom-input:focus,
+.custom-input:hover {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+/* Lookup Container */
+.lookup-container {
+    margin-top: 1rem;
+}
+
+.lookup-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.lookup-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.lookup-input-group input {
+    flex: 1;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0;
+}
+
+.lookup-input-group button {
+    padding: 0.8rem 1.5rem;
+    white-space: nowrap;
+    margin-top: 0;
+}
+
+.lookup-result {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 
 /* Courses Grid */
