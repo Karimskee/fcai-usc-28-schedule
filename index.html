@@ -27,19 +27,20 @@
 
         <section class="selection-panel glass-card">
             <div class="step-container" id="step-dept">
-                <label for="department-select">1. Select Department</label>
-                <select id="department-select" class="custom-select">
-                    <option value="" disabled selected>Choose Department</option>
-                    <!-- Populated by JS -->
-                </select>
+                <label>1. Select Departments</label>
+                <div class="courses-grid" id="departments-container">
+                    <!-- Checkboxes populated by JS -->
+                </div>
             </div>
 
             <div class="step-container hidden" id="step-group">
-                <label for="group-select">2. Select Group</label>
-                <select id="group-select" class="custom-select">
-                    <option value="" disabled selected>Choose Group</option>
-                    <!-- Populated by JS -->
-                </select>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem;">
+                    <label>2. Select Groups</label>
+                    <button id="toggle-search-btn" class="view-btn" style="background: rgba(88, 166, 255, 0.15); color: var(--accent-color); border: 1px solid rgba(88, 166, 255, 0.4);"><i class="fa-solid fa-magnifying-glass"></i> Find Your Group by ID</button>
+                </div>
+                <div class="courses-grid" id="groups-container">
+                    <!-- Checkboxes populated by JS -->
+                </div>
                 
                 <div id="id-search-container" class="search-container hidden">
                     <label for="student-id-input" class="search-label">Enter Student ID to find your group</label>

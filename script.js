@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
-    const deptSelect = document.getElementById('department-select');
-    const groupSelect = document.getElementById('group-select');
+    const deptsContainer = document.getElementById('departments-container');
+    const groupsContainer = document.getElementById('groups-container');
     const coursesContainer = document.getElementById('courses-container');
     const generateBtn = document.getElementById('generate-btn');
 
@@ -11,13 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const timetableContainer = document.getElementById('timetable-container');
 
     const idSearchContainer = document.getElementById('id-search-container');
+    const toggleSearchBtn = document.getElementById('toggle-search-btn');
     const studentIdInput = document.getElementById('student-id-input');
     const searchBtn = document.getElementById('search-btn');
     const searchResult = document.getElementById('search-result');
 
     // State Variables
-    let selectedDept = null;
-    let selectedGroup = null;
+    let selectedDepts = [];
+    let selectedGroups = [];
     let selectedCourses = [];
 
     // Initialize formatting
@@ -27,10 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
         populateDepartments();
 
         // Event Listeners
-        deptSelect.addEventListener('change', handleDeptChange);
-        groupSelect.addEventListener('change', handleGroupChange);
         generateBtn.addEventListener('click', generateSchedule);
         
+        toggleSearchBtn.addEventListener('click', () => {
+            idSearchContainer.classList.toggle('hidden');
+        });
+
         searchBtn.addEventListener('click', handleIdSearch);
         studentIdInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleIdSearch();
@@ -38,21 +41,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateDepartments() {
+        deptsContainer.innerHTML = '';
+        
         scheduleData.departments.forEach(dept => {
-            const option = document.createElement('option');
-            option.value = dept.id;
-            option.textContent = dept.name;
-            deptSelect.appendChild(option);
+            const label = document.createElement('label');
+            label.className = 'course-checkbox-label';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = dept.id;
+            checkbox.addEventListener('change', handleDeptChange);
+
+            const span = document.createElement('span');
+            span.textContent = dept.name;
+
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            deptsContainer.appendChild(label);
         });
     }
 
     function handleDeptChange(e) {
-        selectedDept = e.target.value;
-        selectedGroup = null;
+        if (e.target.checked) {
+            selectedDepts.push(e.target.value);
+        } else {
+            selectedDepts = selectedDepts.filter(id => id !== e.target.value);
+        }
+        
+        selectedGroups = [];
         selectedCourses = [];
 
         // Reset and hide downstream selectors
-        groupSelect.innerHTML = '<option value="" disabled selected>Choose Group</option>';
+        groupsContainer.innerHTML = '';
         stepCourses.classList.add('hidden');
         generateBtn.classList.add('hidden');
         scheduleView.classList.add('hidden');
@@ -60,43 +80,57 @@ document.addEventListener('DOMContentLoaded', () => {
         studentIdInput.value = '';
         searchResult.textContent = '';
 
-        // Populate groups for the selected department
-        const groups = scheduleData.groups[selectedDept] || [];
-
-        if (groups.length > 0) {
-            groups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group.name;
-                option.textContent = group.name;
-                groupSelect.appendChild(option);
+        if (selectedDepts.length > 0) {
+            // Populate groups for all selected departments
+            let allGroups = [];
+            selectedDepts.forEach(deptId => {
+                const groupsForDept = scheduleData.groups[deptId] || [];
+                // Add a department tag to easily identify them if groups share names across depts
+                const groupedWithDeptName = groupsForDept.map(g => ({...g, deptId: deptId}));
+                allGroups = [...allGroups, ...groupedWithDeptName];
             });
-            
-            // Add the "Don't know" option
-            const dunnoOption = document.createElement('option');
-            dunnoOption.value = 'dont_know';
-            dunnoOption.textContent = "Don't know";
-            groupSelect.appendChild(dunnoOption);
-            
-            stepGroup.classList.remove('hidden');
+
+            if (allGroups.length > 0) {
+                // Deduplicate groups by name just in case
+                const uniqueGroups = Array.from(new Map(allGroups.map(item => [item.name, item])).values());
+                
+                uniqueGroups.forEach(group => {
+                    const label = document.createElement('label');
+                    label.className = 'course-checkbox-label';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = group.name;
+                    checkbox.setAttribute('data-dept', group.deptId);
+                    checkbox.addEventListener('change', handleGroupChange);
+
+                    const span = document.createElement('span');
+                    span.textContent = group.name;
+
+                    label.appendChild(checkbox);
+                    label.appendChild(span);
+                    groupsContainer.appendChild(label);
+                });
+                
+                stepGroup.classList.remove('hidden');
+            } else {
+                // If departments have no groups, skip group selection
+                stepGroup.classList.add('hidden');
+                populateCourses();
+            }
         } else {
-            // If department has no groups, skip group selection
             stepGroup.classList.add('hidden');
-            populateCourses();
         }
     }
 
     function handleGroupChange(e) {
-        const val = e.target.value;
-        if (val === 'dont_know') {
-            idSearchContainer.classList.remove('hidden');
-            stepCourses.classList.add('hidden');
-            generateBtn.classList.add('hidden');
-            selectedGroup = null;
+        if (e.target.checked) {
+            selectedGroups.push(e.target.value);
         } else {
-            idSearchContainer.classList.add('hidden');
-            selectedGroup = val;
-            populateCourses();
+            selectedGroups = selectedGroups.filter(name => name !== e.target.value);
         }
+        
+        populateCourses();
     }
 
     function handleIdSearch() {
@@ -110,26 +144,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const mappedGroup = scheduleData.studentGroups && scheduleData.studentGroups[studentId];
         
         if (mappedGroup) {
-            // Verify this group actually belongs to the user's selected department before switching to it
-            const deptGroups = scheduleData.groups[selectedDept] || [];
-            const isGroupInDept = deptGroups.some(g => g.name === mappedGroup);
+            // Find the checkbox for this group
+            const groupCheckbox = Array.from(groupsContainer.querySelectorAll('input[type="checkbox"]'))
+                .find(cb => cb.value === mappedGroup);
             
-            if (isGroupInDept) {
-                // Select the group automatically
-                groupSelect.value = mappedGroup;
-                selectedGroup = mappedGroup;
+            if (groupCheckbox) {
+                if (!groupCheckbox.checked) {
+                    groupCheckbox.checked = true;
+                    selectedGroups.push(mappedGroup);
+                    
+                    // Manually trigger the visual update for courses
+                    populateCourses();
+                }
                 
                 searchResult.style.color = '#10b981'; // Green
                 searchResult.textContent = `Found! You are in ${mappedGroup}.`;
                 
-                // Hide search container and show courses
+                // Hide search container after a short delay
                 setTimeout(() => {
                     idSearchContainer.classList.add('hidden');
-                    populateCourses();
                 }, 1500);
             } else {
                 searchResult.style.color = '#ef4444'; // Red
-                searchResult.textContent = `This ID belongs to ${mappedGroup}, which is not in your department.`;
+                searchResult.textContent = `This ID belongs to ${mappedGroup}, but that group is not currently available under your selected departments.`;
             }
         } else {
             searchResult.style.color = '#ef4444'; // Red
@@ -140,14 +177,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateCourses() {
         coursesContainer.innerHTML = '';
 
-        // Find courses that belong to the selected group
-        const groupsForDept = scheduleData.groups[selectedDept] || [];
-        const groupObj = groupsForDept.find(g => g.name === selectedGroup);
-        const groupSessions = groupObj ? groupObj.sessions : [];
+        if (selectedGroups.length === 0) {
+            stepCourses.classList.add('hidden');
+            generateBtn.classList.add('hidden');
+            return;
+        }
+
+        // Gather all sessions from all selected groups
+        let allGroupSessions = [];
+        
+        // Find the group objects from the original data based on selected names
+        selectedDepts.forEach(deptId => {
+            const groupsForDept = scheduleData.groups[deptId] || [];
+            groupsForDept.forEach(groupObj => {
+                if (selectedGroups.includes(groupObj.name)) {
+                    allGroupSessions = [...allGroupSessions, ...groupObj.sessions];
+                }
+            });
+        });
 
         // Build unique available courses from sessions
         const courseMap = new Map();
-        groupSessions.forEach(session => {
+        allGroupSessions.forEach(session => {
             if (!courseMap.has(session.courseId)) {
                 courseMap.set(session.courseId, { id: session.courseId, name: session.courseName });
             }
@@ -247,22 +298,55 @@ document.addEventListener('DOMContentLoaded', () => {
         // Build personalized schedule data
         const timeline = {};
 
-        // Filter sessions based on selected courses and group
-        const groupsForDept = scheduleData.groups[selectedDept] || [];
-        const groupObj = groupsForDept.find(g => g.name === selectedGroup);
-        const groupSessions = groupObj ? groupObj.sessions : [];
-
-        groupSessions.forEach(session => {
-            if (selectedCourses.includes(session.courseId)) {
-                if (!timeline[session.day]) {
-                    timeline[session.day] = [];
+        // Gather all sessions from all selected groups
+        let allGroupSessions = [];
+        selectedDepts.forEach(deptId => {
+            const groupsForDept = scheduleData.groups[deptId] || [];
+            groupsForDept.forEach(groupObj => {
+                if (selectedGroups.includes(groupObj.name)) {
+                    // Tag each session with its original group so we know where it came from
+                    const sessionsWithGroup = groupObj.sessions.map(s => ({
+                        ...s,
+                        _sourceGroup: groupObj.name
+                    }));
+                    allGroupSessions = [...allGroupSessions, ...sessionsWithGroup];
                 }
-                timeline[session.day].push({
-                    courseId: session.courseId,
-                    courseName: session.courseName,
-                    ...session
-                });
+            });
+        });
+
+        // Deduplicate sessions that are identical (same course, type, day, start, end, location)
+        // while accumulating the groups that attend them.
+        const uniqueSessionsMap = new Map();
+
+        allGroupSessions.forEach(session => {
+            if (selectedCourses.includes(session.courseId)) {
+                // Create a unique hash for the session
+                const sessionKey = `${session.courseId}-${session.type}-${session.day}-${session.start}-${session.end}-${session.location}`;
+                
+                if (uniqueSessionsMap.has(sessionKey)) {
+                    // Session already exists, just add this group to its groups list if not already there
+                    const existingSession = uniqueSessionsMap.get(sessionKey);
+                    if (!existingSession.groups.includes(session._sourceGroup)) {
+                        existingSession.groups.push(session._sourceGroup);
+                    }
+                } else {
+                    // New unique session
+                    uniqueSessionsMap.set(sessionKey, {
+                        ...session,
+                        // Override original group array with just this source group to start,
+                        // this ensures we only show the groups the student actually selected
+                        groups: [session._sourceGroup] 
+                    });
+                }
             }
+        });
+
+        // Add deduplicated sessions to the timeline
+        uniqueSessionsMap.forEach(session => {
+            if (!timeline[session.day]) {
+                timeline[session.day] = [];
+            }
+            timeline[session.day].push(session);
         });
 
         renderTimetable(timeline);
