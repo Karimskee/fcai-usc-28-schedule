@@ -289,12 +289,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Helper function for 12-hour format
         function formatTime12h(time24) {
+            if (!time24) return '';
+            if (time24 === 'غير مؤكد' || !time24.includes(':')) return time24;
             const [hours24, minutes] = time24.split(':');
             let hours = parseInt(hours24, 10);
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
             hours = hours ? hours : 12; // the hour '0' should be '12'
             return `${hours}:${minutes} ${ampm}`;
+        }
+
+        // Helper function to highlight 'ONLINE' text
+        function highlightOnline(text) {
+            if (!text && text !== 0) return text;
+            return String(text).replace(/online/gi, '<span class="highlight-online">$&</span>');
         }
 
         // Sort days of the week
@@ -336,17 +344,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 card.innerHTML = `
                     <div class="session-header">
-                        <span class="session-badge">${session.type}</span>
-                        <span class="session-time"><i class="fa-regular fa-clock"></i> ${formatTime12h(session.start)} - ${formatTime12h(session.end)}</span>
+                        <span class="session-badge">${highlightOnline(session.type)}</span>
+                        <span class="session-time"><i class="fa-regular fa-clock"></i> ${formatTime12h(session.start)}${session.end && session.end !== session.start ? ' - ' + formatTime12h(session.end) : ''}</span>
                     </div>
                     <div class="session-content">
                         <div>
-                            <div class="session-title">${session.courseName} <span class="session-course-id">${session.courseId.toUpperCase()}</span></div>
+                            <div class="session-title">${highlightOnline(session.courseName)} <span class="session-course-id">${session.courseId.toUpperCase()}</span></div>
                             <div class="session-details">
-                                <span><i class="fa-solid fa-location-dot"></i> ${session.location}</span>
-                                <span><i class="fa-solid fa-users"></i> ${session.groups.join(', ')}</span>
-                                <span><i class="fa-solid fa-chalkboard-user"></i> ${session.instructor || 'TBA'}</span>
-                                ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${session.notes}</span>` : ''}
+                                <span><i class="fa-solid fa-location-dot"></i> ${highlightOnline(session.location)}</span>
+                                <span><i class="fa-solid fa-users"></i> ${highlightOnline(session.groups.join(', '))}</span>
+                                <span><i class="fa-solid fa-chalkboard-user"></i> ${highlightOnline(session.instructor || 'TBA')}</span>
+                                ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${highlightOnline(session.notes)}</span>` : ''}
                             </div>
                         </div>
                     </div>
