@@ -20,9 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedDepts = [];
     let selectedGroups = [];
     let selectedCourses = [];
+    
+    // Database instance
+    let db = null;
 
     // Initialize formatting
-    init();
+    initDB();
+
+    async function initDB() {
+        try {
+            const sqlPromise = initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`
+            });
+            const dataPromise = fetch("data.db").then(res => res.arrayBuffer());
+            const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
+            db = new SQL.Database(new Uint8Array(buf));
+            init();
+        } catch (error) {
+            console.error("Failed to load database:", error);
+            deptsContainer.innerHTML = '<p class="subtitle" style="color:#ef4444">Failed to load database. Please try again later.</p>';
+        }
+    }
 
     function init() {
         populateDepartments();
@@ -43,22 +61,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateDepartments() {
         deptsContainer.innerHTML = '';
         
-        scheduleData.departments.forEach(dept => {
-            const label = document.createElement('label');
-            label.className = 'course-checkbox-label';
+        try {
+            const res = db.exec("SELECT * FROM departments");
+            if (res.length > 0) {
+                res[0].values.forEach(row => {
+                    const deptId = row[0];
+                    const deptName = row[1];
+                    const label = document.createElement('label');
+                    label.className = 'course-checkbox-label';
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = dept.id;
-            checkbox.addEventListener('change', handleDeptChange);
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = deptId;
+                    checkbox.addEventListener('change', handleDeptChange);
 
-            const span = document.createElement('span');
-            span.textContent = dept.name;
+                    const span = document.createElement('span');
+                    span.textContent = deptName;
 
-            label.appendChild(checkbox);
-            label.appendChild(span);
-            deptsContainer.appendChild(label);
-        });
+                    label.appendChild(checkbox);
+                    label.appendChild(span);
+                    deptsContainer.appendChild(label);
+                });
+            }
+        } catch (e) {
+            console.error("Error fetching departments", e);
+        }
     }
 
     function handleDeptChange(e) {
@@ -83,12 +110,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedDepts.length > 0) {
             // Populate groups for all selected departments
             let allGroups = [];
-            selectedDepts.forEach(deptId => {
-                const groupsForDept = scheduleData.groups[deptId] || [];
-                // Add a department tag to easily identify them if groups share names across depts
-                const groupedWithDeptName = groupsForDept.map(g => ({...g, deptId: deptId}));
-                allGroups = [...allGroups, ...groupedWithDeptName];
-            });
+            
+            const placeholders = selectedDepts.map(() => '?').join(',');
+            try {
+                // Get sections for selected departments
+                const res = db.exec(`SELECT name, department_id FROM sections WHERE department_id IN (${placeholders})`, selectedDepts);
+                if (res.length > 0) {
+                    allGroups = res[0].values.map(row => ({ name: row[0], deptId: row[1] }));
+                }
+            } catch (e) {
+                console.error(e);
+            }
 
             if (allGroups.length > 0) {
                 // Deduplicate groups by name just in case
@@ -141,7 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const mappedGroup = scheduleData.studentGroups && scheduleData.studentGroups[studentId];
+        let mappedGroup = null;
+        try {
+            const res = db.exec("SELECT group_name FROM student_groups WHERE student_id = ?", [studentId]);
+            if (res.length > 0 && res[0].values.length > 0) {
+                mappedGroup = res[0].values[0][0];
+            }
+        } catch (e) {
+            console.error(e);
+        }
         
         if (mappedGroup) {
             // Find the checkbox for this group
@@ -186,15 +226,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Gather all sessions from all selected groups
         let allGroupSessions = [];
         
-        // Find the group objects from the original data based on selected names
-        selectedDepts.forEach(deptId => {
-            const groupsForDept = scheduleData.groups[deptId] || [];
-            groupsForDept.forEach(groupObj => {
-                if (selectedGroups.includes(groupObj.name)) {
-                    allGroupSessions = [...allGroupSessions, ...groupObj.sessions];
-                }
-            });
-        });
+        try {
+            const placeholders = selectedGroups.map(() => '?').join(',');
+            const res = db.exec(`SELECT course_id, course_name FROM sessions WHERE group_name IN (${placeholders})`, selectedGroups);
+            if (res.length > 0) {
+                res[0].values.forEach(row => {
+                    allGroupSessions.push({
+                        courseId: row[0],
+                        courseName: row[1]
+                    });
+                });
+            }
+        } catch (e) {
+             console.error(e);
+        }
 
         // Build unique available courses from sessions
         const courseMap = new Map();
@@ -298,51 +343,76 @@ document.addEventListener('DOMContentLoaded', () => {
         // Build personalized schedule data
         const timeline = {};
 
-        // Gather all sessions from all selected groups
-        let allGroupSessions = [];
-        selectedDepts.forEach(deptId => {
-            const groupsForDept = scheduleData.groups[deptId] || [];
-            groupsForDept.forEach(groupObj => {
-                if (selectedGroups.includes(groupObj.name)) {
-                    // Tag each session with its original group so we know where it came from
-                    const sessionsWithGroup = groupObj.sessions.map(s => ({
-                        ...s,
-                        _sourceGroup: groupObj.name
-                    }));
-                    allGroupSessions = [...allGroupSessions, ...sessionsWithGroup];
-                }
-            });
-        });
+        // Gather all sessions from all groups for the selected courses
+        let allCourseSessions = [];
+        try {
+            const coursePlaceholders = selectedCourses.map(() => '?').join(',');
+            // We now query WITHOUT filtering by group_name upfront.
+            // This ensures we fetch the session rows for ALL groups that share these courses.
+            const query = `
+                SELECT group_name, course_id, course_name, type, day, start_time, end_time, location, instructor, notes 
+                FROM sessions 
+                WHERE course_id IN (${coursePlaceholders})
+            `;
+            const res = db.exec(query, selectedCourses);
+            if (res.length > 0) {
+                 res[0].values.forEach(row => {
+                      allCourseSessions.push({
+                           _sourceGroup: row[0],
+                           courseId: row[1],
+                           courseName: row[2],
+                           type: row[3],
+                           day: row[4],
+                           start: row[5],
+                           end: row[6],
+                           location: row[7],
+                           instructor: row[8],
+                           notes: row[9]
+                      });
+                 });
+            }
+        } catch (e) {
+             console.error(e);
+        }
 
         // Deduplicate sessions that are identical (same course, type, day, start, end, location)
-        // while accumulating the groups that attend them.
+        // while accumulating ALL the groups that attend them.
         const uniqueSessionsMap = new Map();
 
-        allGroupSessions.forEach(session => {
-            if (selectedCourses.includes(session.courseId)) {
-                // Create a unique hash for the session
-                const sessionKey = `${session.courseId}-${session.type}-${session.day}-${session.start}-${session.end}-${session.location}`;
-                
-                if (uniqueSessionsMap.has(sessionKey)) {
-                    // Session already exists, just add this group to its groups list if not already there
-                    const existingSession = uniqueSessionsMap.get(sessionKey);
-                    if (!existingSession.groups.includes(session._sourceGroup)) {
-                        existingSession.groups.push(session._sourceGroup);
-                    }
-                } else {
-                    // New unique session
-                    uniqueSessionsMap.set(sessionKey, {
-                        ...session,
-                        // Override original group array with just this source group to start,
-                        // this ensures we only show the groups the student actually selected
-                        groups: [session._sourceGroup] 
-                    });
+        allCourseSessions.forEach(session => {
+            // Create a unique hash for the session
+            const sessionKey = `${session.courseId}-${session.type}-${session.day}-${session.start}-${session.end}-${session.location}`;
+            
+            if (uniqueSessionsMap.has(sessionKey)) {
+                // Session already exists, just add this group to its groups list if not already there
+                const existingSession = uniqueSessionsMap.get(sessionKey);
+                if (!existingSession.groups.includes(session._sourceGroup)) {
+                    existingSession.groups.push(session._sourceGroup);
                 }
+            } else {
+                // New unique session
+                uniqueSessionsMap.set(sessionKey, {
+                    ...session,
+                    // Start the groups array with the source group
+                    groups: [session._sourceGroup] 
+                });
             }
         });
 
-        // Add deduplicated sessions to the timeline
+        // Filter the deduplicated sessions to only those that the user's selected groups actually attend
+        const mySessions = [];
         uniqueSessionsMap.forEach(session => {
+            // Check if at least one of the session's groups is in the user's selectedGroups
+            const isAttendedBySelectedGroup = session.groups.some(g => selectedGroups.includes(g));
+            if (isAttendedBySelectedGroup) {
+                // We sort the groups alphabetically for clean display
+                session.groups.sort();
+                mySessions.push(session);
+            }
+        });
+
+        // Add my sessions to the timeline
+        mySessions.forEach(session => {
             if (!timeline[session.day]) {
                 timeline[session.day] = [];
             }
