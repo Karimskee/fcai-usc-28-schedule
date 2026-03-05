@@ -227,8 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let allGroupSessions = [];
         
         try {
-            const placeholders = selectedGroups.map(() => '?').join(',');
-            const res = db.exec(`SELECT course_id, course_name FROM sessions WHERE group_name IN (${placeholders})`, selectedGroups);
+            const likeClauses = selectedGroups.map(() => 'groups LIKE ?').join(' OR ');
+            const likeParams = selectedGroups.map(g => `%${g}%`);
+            const res = db.exec(`SELECT course_id, course_name FROM sessions WHERE (${likeClauses}) AND is_visible = 1`, likeParams);
             if (res.length > 0) {
                 res[0].values.forEach(row => {
                     allGroupSessions.push({
@@ -350,24 +351,29 @@ document.addEventListener('DOMContentLoaded', () => {
             // We now query WITHOUT filtering by group_name upfront.
             // This ensures we fetch the session rows for ALL groups that share these courses.
             const query = `
-                SELECT group_name, course_id, course_name, type, day, start_time, end_time, location, instructor, notes 
+                SELECT groups, course_id, course_name, type, day, start_time, end_time, location, instructor, notes 
                 FROM sessions 
-                WHERE course_id IN (${coursePlaceholders})
+                WHERE course_id IN (${coursePlaceholders}) AND is_visible = 1
             `;
             const res = db.exec(query, selectedCourses);
             if (res.length > 0) {
                  res[0].values.forEach(row => {
-                      allCourseSessions.push({
-                           _sourceGroup: row[0],
-                           courseId: row[1],
-                           courseName: row[2],
-                           type: row[3],
-                           day: row[4],
-                           start: row[5],
-                           end: row[6],
-                           location: row[7],
-                           instructor: row[8],
-                           notes: row[9]
+                      const groupString = row[0];
+                      const sessionGroups = groupString ? groupString.split(',').map(s => s.trim()) : [];
+                      
+                      sessionGroups.forEach(g => {
+                          allCourseSessions.push({
+                               _sourceGroup: g,
+                               courseId: row[1],
+                               courseName: row[2],
+                               type: row[3],
+                               day: row[4],
+                               start: row[5],
+                               end: row[6],
+                               location: row[7],
+                               instructor: row[8],
+                               notes: row[9]
+                          });
                       });
                  });
             }
