@@ -563,7 +563,7 @@ body {
     color: var(--text-secondary);
 }
 
-.highlight-online {
+.highlight-badge {
     color: #10b981;
     font-weight: 700;
     text-shadow: 0 0 8px rgba(16, 185, 129, 0.3);

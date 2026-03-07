@@ -459,10 +459,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${hours}:${minutes} ${ampm}`;
         }
 
-        // Helper function to highlight 'ONLINE' text
-        function highlightOnline(text) {
+        // Helper function to highlight text enclosed in backticks
+        function highlightText(text) {
             if (!text && text !== 0) return text;
-            return String(text).replace(/online/gi, '<span class="highlight-online">$&</span>');
+            
+            // Matches text between backticks
+            const regex = /`([^`]+)`/g;
+            
+            return String(text).replace(regex, (match, p1) => {
+                return `<span class="highlight-badge">${p1}</span>`;
+            });
         }
 
         // Sort days of the week
@@ -504,17 +510,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 card.innerHTML = `
                     <div class="session-header">
-                        <span class="session-badge">${highlightOnline(session.type)}</span>
+                        <span class="session-badge">${highlightText(session.type)}</span>
                         <span class="session-time"><i class="fa-regular fa-clock"></i> ${formatTime12h(session.start)}${session.end && session.end !== session.start ? ' - ' + formatTime12h(session.end) : ''}</span>
                     </div>
                     <div class="session-content">
                         <div>
-                            <div class="session-title">${highlightOnline(session.courseName)} <span class="session-course-id">${session.courseId.toUpperCase()}</span></div>
+                            <div class="session-title">${highlightText(session.courseName)} <span class="session-course-id">${session.courseId.toUpperCase()}</span></div>
                             <div class="session-details">
-                                <span><i class="fa-solid fa-location-dot"></i> ${highlightOnline(session.location)}</span>
-                                <span><i class="fa-solid fa-users"></i> ${highlightOnline(session.groups.join(', '))}</span>
-                                <span><i class="fa-solid fa-chalkboard-user"></i> ${highlightOnline(session.instructor || 'TBA')}</span>
-                                ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${highlightOnline(session.notes)}</span>` : ''}
+                                <span><i class="fa-solid fa-location-dot"></i> ${highlightText(session.location)}</span>
+                                <span><i class="fa-solid fa-users"></i> ${highlightText(session.groups.join(', '))}</span>
+                                <span><i class="fa-solid fa-chalkboard-user"></i> ${highlightText(session.instructor || 'TBA')}</span>
+                                ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${highlightText(session.notes)}</span>` : ''}
                             </div>
                         </div>
                     </div>
