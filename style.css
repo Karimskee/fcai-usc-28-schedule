@@ -11,10 +11,25 @@
     --orb-2: #8a2be2;
     --orb-3: #ff7b72;
 
-    --session-lecture: rgba(88, 166, 255, 0.15);
-    --session-lecture-border: rgba(88, 166, 255, 0.4);
-    --session-section: rgba(138, 43, 226, 0.15);
-    --session-section-border: rgba(138, 43, 226, 0.4);
+    --session-lecture: #58a6ff18;
+    --session-lecture-badge: #58a6ff33;
+    --session-lecture-border: #58a6ff;
+
+    --session-section: #b458ff18;
+    --session-section-badge: #b458ff33;
+    --session-section-border: #b458ff;
+
+    --session-quiz: #ff955818;
+    --session-quiz-badge: #ff955833;
+    --session-quiz-border: #ff9558;
+
+    --session-mid-term: #ff585818;
+    --session-mid-term-badge: #ff585833;
+    --session-mid-term-border: #ff5858;
+    
+    --session-final: #ff585818;
+    --session-final-badge: #ff58581833;
+    --session-final-border: #ff5858;
 }
 
 * {
@@ -485,12 +500,27 @@ body {
 
 .session-card.lecture {
     background: var(--session-lecture);
-    border-color: #58a6ff;
+    border-color: var(--session-lecture-border);
 }
 
 .session-card.section {
     background: var(--session-section);
-    border-color: #c084fc;
+    border-color: var(--session-section-border);
+}
+
+.session-card.quiz {
+    background: var(--session-quiz);
+    border-color: var(--session-quiz-border);
+}
+
+.session-card.mid-term {
+    background: var(--session-mid-term);
+    border-color: var(--session-mid-term-border);
+}
+
+.session-card.final {
+    background: var(--session-final);
+    border-color: var(--session-final-border);
 }
 
 .session-header {
@@ -509,13 +539,28 @@ body {
 }
 
 .lecture .session-badge {
-    background: rgba(88, 166, 255, 0.2);
-    color: #58a6ff;
+    background: var(--session-lecture-badge);
+    color: var(--session-lecture-border);
 }
 
 .section .session-badge {
-    background: rgba(138, 43, 226, 0.2);
-    color: #c084fc;
+    background: var(--session-section-badge);
+    color: var(--session-section-border);
+}
+
+.quiz .session-badge {
+    background: var(--session-quiz-badge);
+    color: var(--session-quiz-border);
+}
+
+.mid-term .session-badge {
+    background: var(--session-mid-term-badge);
+    color: var(--session-mid-term-border);
+}
+
+.final .session-badge {
+    background: var(--session-final-badge);
+    color: var(--session-final-border);
 }
 
 .session-time {
