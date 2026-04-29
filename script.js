@@ -417,15 +417,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Group by Timestamp
+        const timelineByTs = new Map();
+        
+        const weekDaysList = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        function parseDayToTimestamp(dayStr) {
+            if (!dayStr) return null;
+            const idx = weekDaysList.indexOf(dayStr);
+            if (idx !== -1) {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const todayIdx = today.getDay();
+                let diff = idx - todayIdx;
+                if (diff < 0) diff += 7;
+                const target = new Date(today);
+                target.setDate(today.getDate() + diff);
+                return target.getTime();
+            }
+            const d = new Date(dayStr);
+            if (!isNaN(d.getTime())) {
+                d.setHours(0,0,0,0);
+                return d.getTime();
+            }
+            return null;
+        }
+
         // Add my sessions to the timeline
         mySessions.forEach(session => {
-            if (!timeline[session.day]) {
-                timeline[session.day] = [];
+            const ts = parseDayToTimestamp(session.day);
+            if (ts) {
+                if (!timelineByTs.has(ts)) {
+                    timelineByTs.set(ts, []);
+                }
+                timelineByTs.get(ts).push(session);
             }
-            timeline[session.day].push(session);
         });
 
-        renderTimetable(timeline);
+        renderTimetable(timelineByTs);
 
         // Show timetable
         scheduleView.classList.remove('hidden');
@@ -442,10 +470,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
     }
 
-    function renderTimetable(timeline) {
+    function renderTimetable(timelineByTs) {
         timetableContainer.innerHTML = '';
 
-        const daysOrder = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        const weekDaysList = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function formatTimestampToTitle(ts) {
+            const dateObj = new Date(ts);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const diffDays = Math.round((ts - today.getTime()) / (1000 * 3600 * 24));
+            const weekdayName = weekDaysList[dateObj.getDay()];
+            if (diffDays >= 0 && diffDays < 7) {
+                return weekdayName;
+            }
+            const formattedDate = `${dateObj.getMonth()+1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+            return `${weekdayName} ${formattedDate}`;
+        }
 
         // Helper function for 12-hour format
         function formatTime12h(time24) {
@@ -471,12 +512,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Sort days of the week
-        const activeDays = Object.keys(timeline).sort((a, b) => {
-            return daysOrder.indexOf(a) - daysOrder.indexOf(b);
-        });
+        // Sort timestamps chronologically
+        const activeTimestamps = Array.from(timelineByTs.keys()).sort((a, b) => a - b);
 
-        if (activeDays.length === 0) {
+        if (activeTimestamps.length === 0) {
             timetableContainer.innerHTML = `
                 <div class="empty-state">
                     <i class="fa-solid fa-mug-hot" style="font-size: 3rem; margin-bottom: 1rem; color: var(--text-secondary);"></i>
@@ -486,9 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        activeDays.forEach(day => {
+        activeTimestamps.forEach(ts => {
+            const daySessions = timelineByTs.get(ts);
+            
             // Sort sessions in the day by start time
-            timeline[day].sort((a, b) => a.start.localeCompare(b.start));
+            daySessions.sort((a, b) => a.start.localeCompare(b.start));
 
             const dayGroup = document.createElement('div');
             dayGroup.className = 'day-group';
@@ -496,15 +537,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Icon logic based on day
             let icon = 'fa-calendar-day';
 
+            const displayTitle = formatTimestampToTitle(ts);
             const dayHeader = document.createElement('h3');
             dayHeader.className = 'day-title';
-            dayHeader.innerHTML = `<i class="fa-solid ${icon}"></i> ${day}`;
+            dayHeader.innerHTML = `<i class="fa-solid ${icon}"></i> ${displayTitle}`;
             dayGroup.appendChild(dayHeader);
 
             const sessionsList = document.createElement('div');
             sessionsList.className = 'sessions-list';
 
-            timeline[day].forEach(session => {
+            daySessions.forEach(session => {
                 const card = document.createElement('div');
                 card.className = `session-card ${session.type.toLowerCase()}`;
 

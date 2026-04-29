@@ -32,8 +32,46 @@ document.addEventListener('DOMContentLoaded', () => {
     let uniqueInstructors = new Set();
     let uniqueGroups = new Set();
     let uniqueCourses = [];
+    let customDates = [];
 
     const daysOrder = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const weekDaysList = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    document.getElementById('add-date-btn').addEventListener('click', () => {
+        const dStr = prompt("Enter a specific date (YYYY-MM-DD):");
+        if (!dStr) return;
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) {
+            alert("Invalid date format. Please use YYYY-MM-DD.");
+            return;
+        }
+        d.setHours(0,0,0,0);
+        customDates.push(d.getTime());
+        renderTimetable();
+    });
+
+    window.removeCustomDate = function(ts) {
+        if (!confirm("Are you sure you want to remove this date? This will delete ALL sessions scheduled on this exact date.")) return;
+        
+        try {
+            const res = db.exec("SELECT id, day FROM sessions");
+            const idsToDelete = [];
+            if (res.length > 0) {
+                res[0].values.forEach(row => {
+                    const dTs = parseDayToTimestamp(row[1]);
+                    if (dTs === ts) idsToDelete.push(row[0]);
+                });
+            }
+            if (idsToDelete.length > 0) {
+                db.run(`DELETE FROM sessions WHERE id IN (${idsToDelete.join(',')})`);
+            }
+            
+            customDates = customDates.filter(t => t !== ts);
+            renderTimetable();
+        } catch(e) {
+            alert("Error removing date: " + e.message);
+        }
+    };
 
     function showStatus(el, msg, type) {
         el.textContent = msg;
@@ -222,42 +260,116 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function parseDayToTimestamp(dayStr) {
+        if (!dayStr) return null;
+        
+        const idx = weekDaysList.indexOf(dayStr);
+        if (idx !== -1) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const todayIdx = today.getDay();
+            let diff = idx - todayIdx;
+            if (diff < 0) diff += 7;
+            
+            const target = new Date(today);
+            target.setDate(today.getDate() + diff);
+            return target.getTime();
+        }
+        
+        const d = new Date(dayStr);
+        if (!isNaN(d.getTime())) {
+            d.setHours(0,0,0,0);
+            return d.getTime();
+        }
+        return null;
+    }
+
+    function formatTimestampToTitle(ts) {
+        const dateObj = new Date(ts);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const diffDays = Math.round((ts - today.getTime()) / (1000 * 3600 * 24));
+        const weekdayName = weekDaysList[dateObj.getDay()];
+        
+        if (diffDays >= 0 && diffDays < 7) {
+            return weekdayName;
+        }
+        
+        const formattedDate = `${dateObj.getMonth()+1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+        return `${weekdayName} ${formattedDate}`;
+    }
+
+    function getDBDayString(ts) {
+        const dateObj = new Date(ts);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const diffDays = Math.round((ts - today.getTime()) / (1000 * 3600 * 24));
+        if (diffDays >= 0 && diffDays < 7) {
+            return weekDaysList[dateObj.getDay()];
+        }
+        
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     // 3. Render Timetable
     function renderTimetable() {
         timetableContainer.innerHTML = '';
         if (!db) return;
 
-        const timeline = {};
-        daysOrder.forEach(day => timeline[day] = []);
+        const timelineByTs = new Map();
+        
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        for (let i = 0; i < 7; i++) {
+            const target = new Date(today);
+            target.setDate(today.getDate() + i);
+            timelineByTs.set(target.getTime(), []);
+        }
+        
+        customDates.forEach(ts => {
+            if (!timelineByTs.has(ts)) timelineByTs.set(ts, []);
+        });
 
         try {
             const res = db.exec("SELECT id, groups, course_id, course_name, type, day, start_time, end_time, location, instructor, notes, is_visible FROM sessions");
             if (res.length > 0) {
                 res[0].values.forEach(row => {
-                    const day = row[5];
-                    if (!timeline[day]) timeline[day] = [];
-                    timeline[day].push({
-                        id: row[0],
-                        groups: row[1],
-                        courseId: row[2],
-                        courseName: row[3],
-                        type: row[4],
-                        day: row[5],
-                        start: row[6],
-                        end: row[7],
-                        location: row[8],
-                        instructor: row[9],
-                        notes: row[10],
-                        isVisible: row[11]
-                    });
+                    const dayStr = row[5];
+                    const ts = parseDayToTimestamp(dayStr);
+                    if (ts) {
+                        if (!timelineByTs.has(ts)) timelineByTs.set(ts, []);
+                        timelineByTs.get(ts).push({
+                            id: row[0],
+                            groups: row[1],
+                            courseId: row[2],
+                            courseName: row[3],
+                            type: row[4],
+                            day: dayStr,
+                            start: row[6],
+                            end: row[7],
+                            location: row[8],
+                            instructor: row[9],
+                            notes: row[10],
+                            isVisible: row[11]
+                        });
+                    }
                 });
             }
         } catch (e) {
             console.error("Error reading sessions:", e);
         }
 
-        daysOrder.forEach(day => {
-            const daySessions = timeline[day];
+        const sortedTimestamps = Array.from(timelineByTs.keys()).sort((a,b) => a - b);
+
+        sortedTimestamps.forEach(ts => {
+            const daySessions = timelineByTs.get(ts);
+            const dbDayVal = getDBDayString(ts);
+            const displayTitle = formatTimestampToTitle(ts);
             
             const dayGroup = document.createElement('div');
             dayGroup.className = 'day-group';
@@ -267,16 +379,34 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const dayTitle = document.createElement('h3');
             dayTitle.className = 'day-title';
-            dayTitle.innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${day}`;
+            dayTitle.innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${displayTitle}`;
+            
+            // Check if this is a custom date (not in the 7 generic days)
+            const isCustomDate = (ts < today.getTime() || ts >= today.getTime() + 7 * 24 * 3600 * 1000);
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '0.5rem';
+            
+            if (isCustomDate) {
+                const removeDayBtn = document.createElement('button');
+                removeDayBtn.className = 'admin-btn delete';
+                removeDayBtn.style.padding = '0.5rem 1rem';
+                removeDayBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Remove Date';
+                removeDayBtn.onclick = () => removeCustomDate(ts);
+                actionsDiv.appendChild(removeDayBtn);
+            }
             
             const addBtn = document.createElement('button');
             addBtn.className = 'primary-btn';
             addBtn.style.padding = '0.5rem 1rem';
             addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Session';
-            addBtn.onclick = () => openSessionModal('add', null, day);
+            addBtn.onclick = () => openSessionModal('add', null, dbDayVal);
 
+            actionsDiv.appendChild(addBtn);
+            
             dayHeader.appendChild(dayTitle);
-            dayHeader.appendChild(addBtn);
+            dayHeader.appendChild(actionsDiv);
             dayGroup.appendChild(dayHeader);
 
             const sessionsList = document.createElement('div');
