@@ -330,7 +330,10 @@
                 <div class="form-grid">
                     <div class="form-group full-width">
                         <label class="form-label">Course Name *</label>
-                        <input type="text" id="form-course-name" class="form-input" required placeholder="e.g. Image Processing">
+                        <div class="input-with-button">
+                            <select id="form-course-name" class="form-select" required></select>
+                            <button type="button" class="crud-btn" onclick="addNewOption('course')" title="Add New Course"><i class="fa-solid fa-plus"></i></button>
+                        </div>
                         <div class="form-hint">Tip: Wrap words in `backticks` to highlight them (e.g. `New!`)</div>
                     </div>
                     
@@ -457,6 +460,7 @@
             
             <div class="tab-buttons">
                 <button class="tab-btn active" data-tab="tab-groups">Groups</button>
+                <button class="tab-btn" data-tab="tab-courses">Courses</button>
                 <button class="tab-btn" data-tab="tab-types">Types</button>
                 <button class="tab-btn" data-tab="tab-instructors">Instructors</button>
             </div>
@@ -467,6 +471,14 @@
                     <button class="view-btn" onclick="addOption('groups')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fa-solid fa-plus"></i> Add Group</button>
                 </div>
                 <ul class="options-list" id="list-groups"></ul>
+            </div>
+            
+            <div class="tab-content" id="tab-courses">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <p class="form-label" style="margin:0;">Manage courses</p>
+                    <button class="view-btn" onclick="addOption('courses')" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fa-solid fa-plus"></i> Add Course</button>
+                </div>
+                <ul class="options-list" id="list-courses"></ul>
             </div>
             
             <div class="tab-content" id="tab-types">

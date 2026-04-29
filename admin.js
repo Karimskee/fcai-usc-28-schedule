@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let uniqueTypes = new Set();
     let uniqueInstructors = new Set();
     let uniqueGroups = new Set();
+    let uniqueCourses = [];
 
     const daysOrder = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uniqueTypes.clear();
         uniqueInstructors.clear();
         uniqueGroups.clear();
+        uniqueCourses = [];
         
         try {
             const res = db.exec("SELECT DISTINCT type FROM sessions WHERE type IS NOT NULL AND type != ''");
@@ -129,6 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const res3 = db.exec("SELECT DISTINCT name FROM sections WHERE name IS NOT NULL AND name != ''");
             if (res3.length > 0) res3[0].values.forEach(row => uniqueGroups.add(row[0]));
             
+            const res4 = db.exec("SELECT DISTINCT course_id, course_name FROM sessions WHERE course_name IS NOT NULL AND course_name != ''");
+            if (res4.length > 0) {
+                res4[0].values.forEach(row => {
+                    uniqueCourses.push({ id: row[0] || '', name: row[1] });
+                });
+            }
+            
             populateSelects();
         } catch (e) {
             console.error("Error extracting options:", e);
@@ -139,9 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeSelect = document.getElementById('form-type');
         const instSelect = document.getElementById('form-instructor');
         const groupsContainer = document.getElementById('form-groups-container');
+        const courseSelect = document.getElementById('form-course-name');
         
         typeSelect.innerHTML = '<option value="">-- Select Type --</option>';
         instSelect.innerHTML = '<option value="">-- Select Instructor --</option>';
+        courseSelect.innerHTML = '<option value="">-- Select Course --</option>';
         groupsContainer.innerHTML = '';
         
         Array.from(uniqueTypes).sort().forEach(t => {
@@ -160,7 +171,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 </label>
             `;
         });
+        
+        uniqueCourses.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            const display = c.id ? `${c.name} (${c.id})` : c.name;
+            courseSelect.innerHTML += `<option value="${escapeHtml(c.name)}" data-cid="${escapeHtml(c.id)}">${escapeHtml(display)}</option>`;
+        });
     }
+
+    // Auto-fill Course ID
+    document.getElementById('form-course-name').addEventListener('change', (e) => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        if (selectedOption && selectedOption.dataset.cid) {
+            document.getElementById('form-course-id').value = selectedOption.dataset.cid;
+        }
+    });
 
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -464,10 +488,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const listGroups = document.getElementById('list-groups');
         const listTypes = document.getElementById('list-types');
         const listInstructors = document.getElementById('list-instructors');
+        const listCourses = document.getElementById('list-courses');
 
         listGroups.innerHTML = '';
         listTypes.innerHTML = '';
         listInstructors.innerHTML = '';
+        listCourses.innerHTML = '';
 
         Array.from(uniqueGroups).sort().forEach(g => {
             listGroups.innerHTML += `
@@ -504,10 +530,66 @@ document.addEventListener('DOMContentLoaded', () => {
                 </li>
             `;
         });
+
+        uniqueCourses.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            const cJSON = JSON.stringify(c).replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            listCourses.innerHTML += `
+                <li class="option-item">
+                    <span>${escapeHtml(c.name)} <small style="color:var(--text-secondary)">(${escapeHtml(c.id)})</small></span>
+                    <div class="option-actions">
+                        <button class="edit" onclick="editOption('courses', '${cJSON}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="delete" onclick="deleteOption('courses', '${cJSON}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </li>
+            `;
+        });
     }
 
     // Global CRUD actions for Options
+    window.addNewOption = function(field) {
+        if (field === 'course') {
+            const cName = prompt("Enter new Course Name:");
+            if (!cName || !cName.trim()) return;
+            const cId = prompt("Enter new Course ID for " + cName + ":");
+            if (!cId || !cId.trim()) return;
+            
+            uniqueCourses.push({ id: cId.trim(), name: cName.trim() });
+            const sel = document.getElementById('form-course-name');
+            const display = `${cName.trim()} (${cId.trim()})`;
+            sel.innerHTML += `<option value="${escapeHtml(cName.trim())}" data-cid="${escapeHtml(cId.trim())}">${escapeHtml(display)}</option>`;
+            sel.value = cName.trim();
+            document.getElementById('form-course-id').value = cId.trim();
+            return;
+        }
+        
+        const val = prompt(`Enter new ${field}:`);
+        if (!val || !val.trim()) return;
+        
+        const cleanVal = val.trim();
+        if (field === 'type') {
+            uniqueTypes.add(cleanVal);
+            const sel = document.getElementById('form-type');
+            sel.innerHTML += `<option value="${escapeHtml(cleanVal)}">${escapeHtml(cleanVal)}</option>`;
+            sel.value = cleanVal;
+        } else if (field === 'instructor') {
+            uniqueInstructors.add(cleanVal);
+            const sel = document.getElementById('form-instructor');
+            sel.innerHTML += `<option value="${escapeHtml(cleanVal)}">${escapeHtml(cleanVal)}</option>`;
+            sel.value = cleanVal;
+        }
+    };
+
     window.addOption = function(category) {
+        if (category === 'courses') {
+            const cName = prompt("Enter Course Name:");
+            if (!cName || !cName.trim()) return;
+            const cId = prompt("Enter Course ID:");
+            if (!cId || !cId.trim()) return;
+            uniqueCourses.push({ id: cId.trim(), name: cName.trim() });
+            refreshOptionsUI();
+            return;
+        }
+        
         const val = prompt(`Enter new ${category.slice(0,-1)} name:`);
         if (!val || !val.trim()) return;
         const newVal = val.trim();
@@ -531,6 +613,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.editOption = function(category, oldVal) {
+        if (category === 'courses') {
+            const oldCourse = JSON.parse(oldVal.replace(/&quot;/g, '"').replace(/&#039;/g, "'"));
+            const newName = prompt(`Edit Course Name:`, oldCourse.name);
+            if (!newName || !newName.trim()) return;
+            const newId = prompt(`Edit Course ID:`, oldCourse.id);
+            if (!newId || !newId.trim()) return;
+            
+            try {
+                if (oldCourse.id) {
+                    db.run("UPDATE sessions SET course_name = ?, course_id = ? WHERE course_name = ? AND course_id = ?", [newName.trim(), newId.trim(), oldCourse.name, oldCourse.id]);
+                } else {
+                    db.run("UPDATE sessions SET course_name = ?, course_id = ? WHERE course_name = ? AND (course_id IS NULL OR course_id = '')", [newName.trim(), newId.trim(), oldCourse.name]);
+                }
+            } catch (e) {
+                alert("Error updating: " + e.message);
+            }
+            refreshOptionsUI();
+            return;
+        }
+        
         const val = prompt(`Edit ${category.slice(0,-1)}:`, oldVal);
         if (!val || !val.trim() || val.trim() === oldVal) return;
         const newVal = val.trim();
@@ -575,6 +677,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 db.run("UPDATE sessions SET type = NULL WHERE type = ?", [val]);
             } else if (category === 'instructors') {
                 db.run("UPDATE sessions SET instructor = NULL WHERE instructor = ?", [val]);
+            } else if (category === 'courses') {
+                const oldCourse = JSON.parse(val.replace(/&quot;/g, '"').replace(/&#039;/g, "'"));
+                if (oldCourse.id) {
+                    db.run("DELETE FROM sessions WHERE course_name = ? AND course_id = ?", [oldCourse.name, oldCourse.id]);
+                } else {
+                    db.run("DELETE FROM sessions WHERE course_name = ? AND (course_id IS NULL OR course_id = '')", [oldCourse.name]);
+                }
             } else if (category === 'groups') {
                 db.run("DELETE FROM sections WHERE name = ?", [val]);
                 db.run("DELETE FROM student_groups WHERE group_name = ?", [val]);
