@@ -301,7 +301,10 @@
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                     <button id="add-date-btn" class="view-btn"><i class="fa-solid fa-calendar-plus"></i> Add Custom Date</button>
                     <button id="manage-options-btn" class="view-btn"><i class="fa-solid fa-gear"></i> Manage Groups & Options</button>
-                    <button id="commit-btn" class="primary-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Commit Changes to GitHub</button>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.2rem 0.2rem 0.2rem 0.8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <input type="text" id="commit-message" placeholder="Commit message (optional)" style="background: none; border: none; color: white; outline: none; font-family: inherit; width: 220px;" maxlength="100">
+                        <button id="commit-btn" class="primary-btn" style="padding: 0.4rem 0.8rem;"><i class="fa-solid fa-cloud-arrow-up"></i> Commit</button>
+                    </div>
                 </div>
             </div>
             

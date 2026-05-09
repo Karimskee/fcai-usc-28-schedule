@@ -887,6 +887,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const exportedData = db.export();
             const newBase64 = uint8ArrayToBase64(exportedData);
+            
+            const msgInput = document.getElementById('commit-message');
+            const commitMsg = msgInput && msgInput.value.trim() !== '' ? msgInput.value.trim() : "Update schedule database via admin page";
 
             const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                 method: 'PUT',
@@ -896,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message: "Update schedule database via admin page",
+                    message: commitMsg,
                     content: newBase64,
                     sha: currentSha
                 })
@@ -920,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus(commitStatus, `Error: ${error.message}`, 'error');
         } finally {
             commitBtn.disabled = false;
-            commitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Commit Changes to GitHub';
+            commitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Commit';
         }
     });
 });
