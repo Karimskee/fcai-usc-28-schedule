@@ -263,8 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatTime12h(time24) {
-        if (!time24) return '';
-        if (time24 === 'غير مؤكد' || !time24.includes(':')) return time24;
+        if (!time24) return 'غير محدد';
+        if (time24 === 'غير مؤكد' || time24 === 'غير محدد' || !time24.includes(':')) return time24;
         const [hours24, minutes] = time24.split(':');
         let hours = parseInt(hours24, 10);
         const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     card.innerHTML = `
                         <div class="session-header">
                             <span class="session-badge">${highlightText(session.type) || 'No Type'}</span>
-                            <span class="session-time"><i class="fa-regular fa-clock"></i> ${formatTime12h(session.start)}${session.end && session.end !== session.start ? ' - ' + formatTime12h(session.end) : ''}</span>
+                            <span class="session-time"><i class="fa-regular fa-clock"></i> ${(!session.start && !session.end) ? 'غير محدد' : (session.start === session.end ? formatTime12h(session.start) : `${formatTime12h(session.start)} - ${formatTime12h(session.end)}`)}</span>
                         </div>
                         <div class="session-content">
                             <div>
@@ -483,12 +483,12 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionForm.reset();
             document.getElementById('form-visible').checked = true;
             
-            document.getElementById('form-start-hour').value = '08';
+            document.getElementById('form-start-hour').value = '';
             document.getElementById('form-start-minute').value = '00';
             document.getElementById('form-start-ampm').value = 'AM';
             document.getElementById('form-end-hour').value = '';
-            document.getElementById('form-end-minute').value = '';
-            document.getElementById('form-end-ampm').value = '';
+            document.getElementById('form-end-minute').value = '00';
+            document.getElementById('form-end-ampm').value = 'AM';
         } else if (mode === 'edit' && sessionData) {
             modalTitle.textContent = `Edit Session`;
             document.getElementById('form-session-id').value = sessionData.id;
