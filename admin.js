@@ -38,11 +38,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekDaysList = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     document.getElementById('add-date-btn').addEventListener('click', () => {
-        const dStr = prompt("Enter a specific date (YYYY-MM-DD):");
+        const dStr = prompt("Enter a specific date (D/M/YYYY or DD/MM/YYYY):");
         if (!dStr) return;
-        const d = new Date(dStr);
-        if (isNaN(d.getTime())) {
-            alert("Invalid date format. Please use YYYY-MM-DD.");
+        
+        const parts = dStr.split('/');
+        if (parts.length !== 3) {
+            alert("Invalid date format. Please use D/M/YYYY.");
+            return;
+        }
+        
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        
+        const d = new Date(year, month, day);
+        if (isNaN(d.getTime()) || d.getDate() !== day || d.getMonth() !== month || d.getFullYear() !== year) {
+            alert("Invalid date. Please use a valid D/M/YYYY date.");
             return;
         }
         d.setHours(0,0,0,0);
@@ -303,17 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTimestampToTitle(ts) {
         const dateObj = new Date(ts);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        const diffDays = Math.round((ts - today.getTime()) / (1000 * 3600 * 24));
         const weekdayName = weekDaysList[dateObj.getDay()];
-        
-        if (diffDays >= 0 && diffDays < 7) {
-            return weekdayName;
-        }
-        
-        const formattedDate = `${dateObj.getMonth()+1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+        const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
         return `${weekdayName} ${formattedDate}`;
     }
 

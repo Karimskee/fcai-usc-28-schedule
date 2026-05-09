@@ -477,14 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function formatTimestampToTitle(ts) {
             const dateObj = new Date(ts);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const diffDays = Math.round((ts - today.getTime()) / (1000 * 3600 * 24));
             const weekdayName = weekDaysList[dateObj.getDay()];
-            if (diffDays >= 0 && diffDays < 7) {
-                return weekdayName;
-            }
-            const formattedDate = `${dateObj.getMonth()+1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+            const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
             return `${weekdayName} ${formattedDate}`;
         }
 
