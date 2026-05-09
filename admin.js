@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div>
                                 <div class="session-title">${highlightText(session.courseName)} <span class="session-course-id">${(session.courseId || '').toUpperCase()}</span></div>
                                 <div class="session-details">
-                                    <span><i class="fa-solid fa-location-dot"></i> ${highlightText(session.location)}</span>
+                                    <span><i class="fa-solid fa-location-dot"></i> ${highlightText(session.location || 'غير محدد')}</span>
                                     <span><i class="fa-solid fa-users"></i> ${highlightText(session.groups)}</span>
                                     <span><i class="fa-solid fa-chalkboard-user"></i> ${highlightText(session.instructor || 'TBA')}</span>
                                     ${session.notes ? `<span><i class="fa-solid fa-circle-info"></i> ${highlightText(session.notes)}</span>` : ''}
