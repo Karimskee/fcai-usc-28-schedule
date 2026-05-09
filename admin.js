@@ -133,6 +133,23 @@ document.addEventListener('DOMContentLoaded', () => {
             
             db = new SQL.Database(uInt8Array);
             
+            // Ensure necessary tables exist
+            db.run("CREATE TABLE IF NOT EXISTS session_types (name TEXT PRIMARY KEY);");
+            db.run("CREATE TABLE IF NOT EXISTS instructors (name TEXT PRIMARY KEY);");
+            db.run("CREATE TABLE IF NOT EXISTS courses (id TEXT, name TEXT);");
+            
+            // Seed them from existing sessions to maintain current data
+            db.run("INSERT OR IGNORE INTO session_types (name) SELECT DISTINCT type FROM sessions WHERE type IS NOT NULL AND type != '';");
+            db.run("INSERT OR IGNORE INTO instructors (name) SELECT DISTINCT instructor FROM sessions WHERE instructor IS NOT NULL AND instructor != '';");
+            db.run(`
+                INSERT INTO courses (id, name) 
+                SELECT DISTINCT course_id, course_name FROM sessions 
+                WHERE course_name IS NOT NULL AND course_name != '' 
+                AND NOT EXISTS (
+                    SELECT 1 FROM courses c WHERE c.name = sessions.course_name AND (c.id = sessions.course_id OR (c.id IS NULL AND sessions.course_id IS NULL))
+                );
+            `);
+            
             showStatus(authStatus, 'Database loaded successfully!', 'success');
             
             setTimeout(() => {
@@ -159,17 +176,17 @@ document.addEventListener('DOMContentLoaded', () => {
         uniqueCourses = [];
         
         try {
-            const res = db.exec("SELECT DISTINCT type FROM sessions WHERE type IS NOT NULL AND type != ''");
+            const res = db.exec("SELECT DISTINCT name FROM session_types WHERE name IS NOT NULL AND name != ''");
             if (res.length > 0) res[0].values.forEach(row => uniqueTypes.add(row[0]));
             
-            const res2 = db.exec("SELECT DISTINCT instructor FROM sessions WHERE instructor IS NOT NULL AND instructor != ''");
+            const res2 = db.exec("SELECT DISTINCT name FROM instructors WHERE name IS NOT NULL AND name != ''");
             if (res2.length > 0) res2[0].values.forEach(row => uniqueInstructors.add(row[0]));
 
             // Read groups from sections table as primary source
             const res3 = db.exec("SELECT DISTINCT name FROM sections WHERE name IS NOT NULL AND name != ''");
             if (res3.length > 0) res3[0].values.forEach(row => uniqueGroups.add(row[0]));
             
-            const res4 = db.exec("SELECT DISTINCT course_id, course_name FROM sessions WHERE course_name IS NOT NULL AND course_name != ''");
+            const res4 = db.exec("SELECT DISTINCT id, name FROM courses WHERE name IS NOT NULL AND name != ''");
             if (res4.length > 0) {
                 res4[0].values.forEach(row => {
                     uniqueCourses.push({ id: row[0] || '', name: row[1] });
@@ -683,6 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cId = prompt("Enter new Course ID for " + cName + ":");
             if (!cId || !cId.trim()) return;
             
+            db.run("INSERT INTO courses (id, name) VALUES (?, ?)", [cId.trim(), cName.trim()]);
             uniqueCourses.push({ id: cId.trim(), name: cName.trim() });
             const sel = document.getElementById('form-course-name');
             const display = `${cName.trim()} (${cId.trim()})`;
@@ -697,11 +715,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const cleanVal = val.trim();
         if (field === 'type') {
+            db.run("INSERT INTO session_types (name) VALUES (?)", [cleanVal]);
             uniqueTypes.add(cleanVal);
             const sel = document.getElementById('form-type');
             sel.innerHTML += `<option value="${escapeHtml(cleanVal)}">${escapeHtml(cleanVal)}</option>`;
             sel.value = cleanVal;
         } else if (field === 'instructor') {
+            db.run("INSERT INTO instructors (name) VALUES (?)", [cleanVal]);
             uniqueInstructors.add(cleanVal);
             const sel = document.getElementById('form-instructor');
             sel.innerHTML += `<option value="${escapeHtml(cleanVal)}">${escapeHtml(cleanVal)}</option>`;
@@ -715,6 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!cName || !cName.trim()) return;
             const cId = prompt("Enter Course ID:");
             if (!cId || !cId.trim()) return;
+            db.run("INSERT INTO courses (id, name) VALUES (?, ?)", [cId.trim(), cName.trim()]);
             uniqueCourses.push({ id: cId.trim(), name: cName.trim() });
             refreshOptionsUI();
             return;
@@ -734,9 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Error adding group: " + e.message); return;
             }
         } else if (category === 'types') {
-            // Nothing needed in DB until used in a session, but we can add to Set
+            db.run("INSERT INTO session_types (name) VALUES (?)", [newVal]);
         } else if (category === 'instructors') {
-            // Nothing needed in DB until used
+            db.run("INSERT INTO instructors (name) VALUES (?)", [newVal]);
         }
 
         refreshOptionsUI();
@@ -752,8 +773,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             try {
                 if (oldCourse.id) {
+                    db.run("UPDATE courses SET name = ?, id = ? WHERE name = ? AND id = ?", [newName.trim(), newId.trim(), oldCourse.name, oldCourse.id]);
                     db.run("UPDATE sessions SET course_name = ?, course_id = ? WHERE course_name = ? AND course_id = ?", [newName.trim(), newId.trim(), oldCourse.name, oldCourse.id]);
                 } else {
+                    db.run("UPDATE courses SET name = ?, id = ? WHERE name = ? AND (id IS NULL OR id = '')", [newName.trim(), newId.trim(), oldCourse.name]);
                     db.run("UPDATE sessions SET course_name = ?, course_id = ? WHERE course_name = ? AND (course_id IS NULL OR course_id = '')", [newName.trim(), newId.trim(), oldCourse.name]);
                 }
             } catch (e) {
@@ -769,8 +792,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (category === 'types') {
+                db.run("UPDATE session_types SET name = ? WHERE name = ?", [newVal, oldVal]);
                 db.run("UPDATE sessions SET type = ? WHERE type = ?", [newVal, oldVal]);
             } else if (category === 'instructors') {
+                db.run("UPDATE instructors SET name = ? WHERE name = ?", [newVal, oldVal]);
                 db.run("UPDATE sessions SET instructor = ? WHERE instructor = ?", [newVal, oldVal]);
             } else if (category === 'groups') {
                 db.run("UPDATE sections SET name = ? WHERE name = ?", [newVal, oldVal]);
@@ -804,14 +829,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (category === 'types') {
+                db.run("DELETE FROM session_types WHERE name = ?", [val]);
                 db.run("UPDATE sessions SET type = NULL WHERE type = ?", [val]);
             } else if (category === 'instructors') {
+                db.run("DELETE FROM instructors WHERE name = ?", [val]);
                 db.run("UPDATE sessions SET instructor = NULL WHERE instructor = ?", [val]);
             } else if (category === 'courses') {
                 const oldCourse = JSON.parse(val.replace(/&quot;/g, '"').replace(/&#039;/g, "'"));
                 if (oldCourse.id) {
+                    db.run("DELETE FROM courses WHERE name = ? AND id = ?", [oldCourse.name, oldCourse.id]);
                     db.run("DELETE FROM sessions WHERE course_name = ? AND course_id = ?", [oldCourse.name, oldCourse.id]);
                 } else {
+                    db.run("DELETE FROM courses WHERE name = ? AND (id IS NULL OR id = '')", [oldCourse.name]);
                     db.run("DELETE FROM sessions WHERE course_name = ? AND (course_id IS NULL OR course_id = '')", [oldCourse.name]);
                 }
             } else if (category === 'groups') {
