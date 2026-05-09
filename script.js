@@ -538,10 +538,89 @@ document.addEventListener('DOMContentLoaded', () => {
             let icon = 'fa-calendar-day';
 
             const displayTitle = formatTimestampToTitle(ts);
+            
+            const headerContainer = document.createElement('div');
+            headerContainer.style.display = 'flex';
+            headerContainer.style.justifyContent = 'space-between';
+            headerContainer.style.alignItems = 'center';
+            headerContainer.style.marginBottom = '1.2rem';
+
             const dayHeader = document.createElement('h3');
             dayHeader.className = 'day-title';
+            dayHeader.style.marginBottom = '0';
             dayHeader.innerHTML = `<i class="fa-solid ${icon}"></i> ${displayTitle}`;
-            dayGroup.appendChild(dayHeader);
+            
+            const copyImgBtn = document.createElement('button');
+            copyImgBtn.className = 'view-btn';
+            copyImgBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Copy Image';
+            copyImgBtn.style.padding = '0.4rem 0.8rem';
+            copyImgBtn.style.fontSize = '0.85rem';
+            copyImgBtn.style.display = 'flex';
+            copyImgBtn.style.alignItems = 'center';
+            copyImgBtn.style.gap = '0.4rem';
+            
+            copyImgBtn.addEventListener('click', async () => {
+                const originalText = copyImgBtn.innerHTML;
+                copyImgBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Copying...';
+                copyImgBtn.disabled = true;
+                
+                try {
+                    copyImgBtn.style.visibility = 'hidden';
+                    const originalPadding = dayGroup.style.padding;
+                    const originalRadius = dayGroup.style.borderRadius;
+                    const originalBg = dayGroup.style.background;
+                    const originalBorder = dayGroup.style.border;
+                    
+                    dayGroup.style.padding = '1.5rem';
+                    dayGroup.style.borderRadius = '12px';
+                    dayGroup.style.background = '#0d1117'; 
+                    dayGroup.style.border = '1px solid rgba(48, 54, 61, 0.5)';
+                    
+                    const canvas = await html2canvas(dayGroup, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#0d1117'
+                    });
+                    
+                    dayGroup.style.padding = originalPadding;
+                    dayGroup.style.borderRadius = originalRadius;
+                    dayGroup.style.background = originalBg;
+                    dayGroup.style.border = originalBorder;
+                    copyImgBtn.style.visibility = 'visible';
+                    
+                    canvas.toBlob(async (blob) => {
+                        try {
+                            const item = new ClipboardItem({ 'image/png': blob });
+                            await navigator.clipboard.write([item]);
+                            copyImgBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                            setTimeout(() => {
+                                copyImgBtn.innerHTML = originalText;
+                                copyImgBtn.disabled = false;
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Clipboard write failed:', err);
+                            copyImgBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Failed';
+                            setTimeout(() => {
+                                copyImgBtn.innerHTML = originalText;
+                                copyImgBtn.disabled = false;
+                            }, 3000);
+                        }
+                    }, 'image/png');
+                } catch (err) {
+                    console.error('html2canvas failed:', err);
+                    copyImgBtn.style.visibility = 'visible';
+                    copyImgBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Error';
+                    setTimeout(() => {
+                        copyImgBtn.innerHTML = originalText;
+                        copyImgBtn.disabled = false;
+                    }, 2000);
+                }
+            });
+
+            headerContainer.appendChild(dayHeader);
+            headerContainer.appendChild(copyImgBtn);
+            dayGroup.appendChild(headerContainer);
 
             const sessionsList = document.createElement('div');
             sessionsList.className = 'sessions-list';
