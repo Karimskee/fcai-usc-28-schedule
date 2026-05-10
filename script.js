@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Database instance
     let db = null;
+    let typeColors = new Map();
 
     // Initialize formatting
     initDB();
@@ -43,6 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function init() {
+        try {
+            // Attempt to load colors if the column exists
+            try { db.run("ALTER TABLE session_types ADD COLUMN color TEXT;"); } catch(e) {}
+            const res = db.exec("SELECT name, color FROM session_types WHERE name IS NOT NULL AND name != ''");
+            if (res.length > 0) {
+                res[0].values.forEach(row => {
+                    typeColors.set(row[0], row[1] || '#58a6ff');
+                });
+            }
+        } catch(e) {}
+
         populateDepartments();
 
         // Event Listeners
@@ -506,6 +518,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Helper function for color conversion
+        function hexToRgb(hex) {
+            let r = parseInt(hex.slice(1, 3), 16) || 0,
+                g = parseInt(hex.slice(3, 5), 16) || 0,
+                b = parseInt(hex.slice(5, 7), 16) || 0;
+            return `${r}, ${g}, ${b}`;
+        }
+
         // Sort timestamps chronologically
         const activeTimestamps = Array.from(timelineByTs.keys()).sort((a, b) => a - b);
 
@@ -620,8 +640,11 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionsList.className = 'sessions-list';
 
             daySessions.forEach(session => {
+                const typeColor = typeColors.get(session.type) || '#58a6ff';
                 const card = document.createElement('div');
-                card.className = `session-card ${session.type.toLowerCase()}`;
+                card.className = `session-card custom-color`;
+                card.style.setProperty('--card-color', typeColor);
+                card.style.setProperty('--card-color-rgb', hexToRgb(typeColor));
 
                 card.innerHTML = `
                     <div class="session-header">

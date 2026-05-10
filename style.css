@@ -523,6 +523,11 @@ body {
     border-color: var(--session-final-border);
 }
 
+.session-card.custom-color {
+    background: rgba(var(--card-color-rgb), 0.1);
+    border-color: var(--card-color);
+}
+
 .session-header {
     display: flex;
     justify-content: space-between;
@@ -536,6 +541,11 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.session-card.custom-color .session-badge {
+    background: rgba(var(--card-color-rgb), 0.2);
+    color: var(--card-color);
 }
 
 .lecture .session-badge {

@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSha = null;
     let githubToken = '';
     
-    let uniqueTypes = new Set();
+    let uniqueTypes = new Map();
     let uniqueInstructors = new Set();
     let uniqueGroups = new Set();
     let uniqueCourses = [];
@@ -145,12 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
             db = new SQL.Database(uInt8Array);
             
             // Ensure necessary tables exist
-            db.run("CREATE TABLE IF NOT EXISTS session_types (name TEXT PRIMARY KEY);");
+            db.run("CREATE TABLE IF NOT EXISTS session_types (name TEXT PRIMARY KEY, color TEXT);");
+            try { db.run("ALTER TABLE session_types ADD COLUMN color TEXT;"); } catch(e) {}
             db.run("CREATE TABLE IF NOT EXISTS instructors (name TEXT PRIMARY KEY);");
             db.run("CREATE TABLE IF NOT EXISTS courses (id TEXT, name TEXT);");
             
             // Seed them from existing sessions to maintain current data
-            db.run("INSERT OR IGNORE INTO session_types (name) SELECT DISTINCT type FROM sessions WHERE type IS NOT NULL AND type != '';");
+            db.run("INSERT OR IGNORE INTO session_types (name, color) SELECT DISTINCT type, '#58a6ff' FROM sessions WHERE type IS NOT NULL AND type != '';");
             db.run("INSERT OR IGNORE INTO instructors (name) SELECT DISTINCT instructor FROM sessions WHERE instructor IS NOT NULL AND instructor != '';");
             db.run(`
                 INSERT INTO courses (id, name) 
@@ -187,8 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
         uniqueCourses = [];
         
         try {
-            const res = db.exec("SELECT DISTINCT name FROM session_types WHERE name IS NOT NULL AND name != ''");
-            if (res.length > 0) res[0].values.forEach(row => uniqueTypes.add(row[0]));
+            const res = db.exec("SELECT DISTINCT name, color FROM session_types WHERE name IS NOT NULL AND name != ''");
+            if (res.length > 0) res[0].values.forEach(row => uniqueTypes.set(row[0], row[1] || '#58a6ff'));
             
             const res2 = db.exec("SELECT DISTINCT name FROM instructors WHERE name IS NOT NULL AND name != ''");
             if (res2.length > 0) res2[0].values.forEach(row => uniqueInstructors.add(row[0]));
@@ -221,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         courseSelect.innerHTML = '<option value="">-- Select Course --</option>';
         groupsContainer.innerHTML = '';
         
-        Array.from(uniqueTypes).sort().forEach(t => {
+        Array.from(uniqueTypes.keys()).sort().forEach(t => {
             typeSelect.innerHTML += `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`;
         });
         
@@ -286,6 +287,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(text).replace(regex, (match, p1) => {
             return `<span class="highlight-badge">${p1}</span>`;
         });
+    }
+
+    function hexToRgb(hex) {
+        let r = parseInt(hex.slice(1, 3), 16) || 0,
+            g = parseInt(hex.slice(3, 5), 16) || 0,
+            b = parseInt(hex.slice(5, 7), 16) || 0;
+        return `${r}, ${g}, ${b}`;
     }
 
     function parseDayToTimestamp(dayStr) {
@@ -437,8 +445,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 daySessions.sort((a, b) => (a.start || '').localeCompare(b.start || ''));
 
                 daySessions.forEach(session => {
+                    const typeColor = session.type && uniqueTypes.has(session.type) ? uniqueTypes.get(session.type) : '#58a6ff';
                     const card = document.createElement('div');
-                    card.className = `session-card ${session.type ? session.type.toLowerCase() : ''}`;
+                    card.className = `session-card custom-color`;
+                    card.style.setProperty('--card-color', typeColor);
+                    card.style.setProperty('--card-color-rgb', hexToRgb(typeColor));
                     if (!session.isVisible) card.style.opacity = '0.6';
 
                     card.innerHTML = `
@@ -656,10 +667,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
 
-        Array.from(uniqueTypes).sort().forEach(t => {
+        Array.from(uniqueTypes.keys()).sort().forEach(t => {
+            const tColor = uniqueTypes.get(t) || '#58a6ff';
             listTypes.innerHTML += `
                 <li class="option-item">
-                    <span>${escapeHtml(t)}</span>
+                    <div style="display: flex; align-items: center; gap: 0.8rem;">
+                        <input type="color" value="${tColor}" onchange="updateTypeColor('${escapeHtml(t)}', this.value)" style="border:none; background:none; cursor:pointer; width: 28px; height: 28px; padding:0; border-radius: 4px;">
+                        <span>${escapeHtml(t)}</span>
+                    </div>
                     <div class="option-actions">
                         <button class="edit" onclick="editOption('types', '${escapeHtml(t)}')"><i class="fa-solid fa-pen"></i></button>
                         <button class="delete" onclick="deleteOption('types', '${escapeHtml(t)}')"><i class="fa-solid fa-trash"></i></button>
@@ -694,6 +709,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    window.updateTypeColor = function(name, color) {
+        try {
+            db.run("UPDATE session_types SET color = ? WHERE name = ?", [color, name]);
+            uniqueTypes.set(name, color);
+            renderTimetable();
+        } catch (e) {
+            alert("Error updating color: " + e.message);
+        }
+    };
+
     // Global CRUD actions for Options
     window.addNewOption = function(field) {
         if (field === 'course') {
@@ -717,8 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const cleanVal = val.trim();
         if (field === 'type') {
-            db.run("INSERT INTO session_types (name) VALUES (?)", [cleanVal]);
-            uniqueTypes.add(cleanVal);
+            db.run("INSERT INTO session_types (name, color) VALUES (?, '#58a6ff')", [cleanVal]);
+            uniqueTypes.set(cleanVal, '#58a6ff');
             const sel = document.getElementById('form-type');
             sel.innerHTML += `<option value="${escapeHtml(cleanVal)}">${escapeHtml(cleanVal)}</option>`;
             sel.value = cleanVal;
@@ -757,7 +782,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Error adding group: " + e.message); return;
             }
         } else if (category === 'types') {
-            db.run("INSERT INTO session_types (name) VALUES (?)", [newVal]);
+            db.run("INSERT INTO session_types (name, color) VALUES (?, '#58a6ff')", [newVal]);
+            uniqueTypes.set(newVal, '#58a6ff');
         } else if (category === 'instructors') {
             db.run("INSERT INTO instructors (name) VALUES (?)", [newVal]);
         }
