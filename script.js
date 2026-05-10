@@ -241,13 +241,19 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const likeClauses = selectedGroups.map(() => 'groups LIKE ?').join(' OR ');
             const likeParams = selectedGroups.map(g => `%${g}%`);
-            const res = db.exec(`SELECT course_id, course_name FROM sessions WHERE (${likeClauses}) AND is_visible = 1`, likeParams);
+            const res = db.exec(`SELECT groups, course_id, course_name FROM sessions WHERE (${likeClauses}) AND is_visible = 1`, likeParams);
             if (res.length > 0) {
                 res[0].values.forEach(row => {
-                    allGroupSessions.push({
-                        courseId: row[0],
-                        courseName: row[1]
-                    });
+                    const groupsStr = row[0];
+                    const sessionGroups = groupsStr ? groupsStr.split(',').map(s => s.trim()) : [];
+                    const isAttended = sessionGroups.some(g => selectedGroups.includes(g));
+                    
+                    if (isAttended) {
+                        allGroupSessions.push({
+                            courseId: row[1],
+                            courseName: row[2]
+                        });
+                    }
                 });
             }
         } catch (e) {
@@ -357,77 +363,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeline = {};
 
         // Gather all sessions from all groups for the selected courses
-        let allCourseSessions = [];
+        const mySessions = [];
         try {
             const coursePlaceholders = selectedCourses.map(() => '?').join(',');
-            // We now query WITHOUT filtering by group_name upfront.
-            // This ensures we fetch the session rows for ALL groups that share these courses.
             const query = `
-                SELECT groups, course_id, course_name, type, day, start_time, end_time, location, instructor, notes 
+                SELECT id, groups, course_id, course_name, type, day, start_time, end_time, location, instructor, notes 
                 FROM sessions 
                 WHERE course_id IN (${coursePlaceholders}) AND is_visible = 1
             `;
             const res = db.exec(query, selectedCourses);
             if (res.length > 0) {
                  res[0].values.forEach(row => {
-                      const groupString = row[0];
+                      const groupString = row[1];
                       const sessionGroups = groupString ? groupString.split(',').map(s => s.trim()) : [];
                       
-                      sessionGroups.forEach(g => {
-                          allCourseSessions.push({
-                               _sourceGroup: g,
-                               courseId: row[1],
-                               courseName: row[2],
-                               type: row[3],
-                               day: row[4],
-                               start: row[5],
-                               end: row[6],
-                               location: row[7],
-                               instructor: row[8],
-                               notes: row[9]
+                      const isAttendedBySelectedGroup = sessionGroups.some(g => selectedGroups.includes(g));
+                      
+                      if (isAttendedBySelectedGroup) {
+                          sessionGroups.sort();
+                          mySessions.push({
+                               id: row[0],
+                               groups: sessionGroups,
+                               courseId: row[2],
+                               courseName: row[3],
+                               type: row[4],
+                               day: row[5],
+                               start: row[6],
+                               end: row[7],
+                               location: row[8],
+                               instructor: row[9],
+                               notes: row[10]
                           });
-                      });
+                      }
                  });
             }
         } catch (e) {
              console.error(e);
         }
-
-        // Deduplicate sessions that are identical (same course, type, day, start, end, location)
-        // while accumulating ALL the groups that attend them.
-        const uniqueSessionsMap = new Map();
-
-        allCourseSessions.forEach(session => {
-            // Create a unique hash for the session
-            const sessionKey = `${session.courseId}-${session.type}-${session.day}-${session.start}-${session.end}-${session.location}`;
-            
-            if (uniqueSessionsMap.has(sessionKey)) {
-                // Session already exists, just add this group to its groups list if not already there
-                const existingSession = uniqueSessionsMap.get(sessionKey);
-                if (!existingSession.groups.includes(session._sourceGroup)) {
-                    existingSession.groups.push(session._sourceGroup);
-                }
-            } else {
-                // New unique session
-                uniqueSessionsMap.set(sessionKey, {
-                    ...session,
-                    // Start the groups array with the source group
-                    groups: [session._sourceGroup] 
-                });
-            }
-        });
-
-        // Filter the deduplicated sessions to only those that the user's selected groups actually attend
-        const mySessions = [];
-        uniqueSessionsMap.forEach(session => {
-            // Check if at least one of the session's groups is in the user's selectedGroups
-            const isAttendedBySelectedGroup = session.groups.some(g => selectedGroups.includes(g));
-            if (isAttendedBySelectedGroup) {
-                // We sort the groups alphabetically for clean display
-                session.groups.sort();
-                mySessions.push(session);
-            }
-        });
 
         // Group by Timestamp
         const timelineByTs = new Map();
